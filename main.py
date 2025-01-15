@@ -65,7 +65,7 @@ class StellarApp:
                 "2) Press & hold LMB, drag across to the opposite corner,\n"
                 "   then release LMB.\n"
                 "3) Type in phrase1 (Penetration) and phrase2 (15)\n"
-                "4) Press 'Start' and place mouse cursor \n"
+                "4) Press 'Start' and place mouse cursor\n"
                 "   on 'Imprint' button in the game.\n"
             )
         )
@@ -75,19 +75,31 @@ class StellarApp:
         frame_phrases.pack(pady=5)
 
         label_phrase1 = tk.Label(frame_phrases, text="Phrase 1 (Penetration):")
-        label_phrase2 = tk.Label(frame_phrases, text="Phrase 2 (15):")
-
-        vcmd = (self.root.register(self.validate_digits), '%P')
+        label_phrase1.grid(row=0, column=0, padx=5, sticky="e")
 
         self.entry_phrase1 = tk.Entry(frame_phrases, width=25)
-        self.entry_phrase2 = tk.Entry(frame_phrases, width=25,
-                                      validate='key',
-                                      validatecommand=vcmd)
-
-        label_phrase1.grid(row=0, column=0, padx=5, sticky="e")
         self.entry_phrase1.grid(row=0, column=1, padx=5)
+
+        label_phrase2 = tk.Label(frame_phrases, text="Phrase 2 (15):")
         label_phrase2.grid(row=1, column=0, padx=5, sticky="e")
+
+        vcmd = (root.register(self.validate_digits), '%P')
+
+        self.entry_phrase2 = tk.Entry(
+            frame_phrases, width=25,
+            validate='key', validatecommand=vcmd,
+            state="normal"  # włączone
+        )
         self.entry_phrase2.grid(row=1, column=1, padx=5)
+
+        self.enable_phrase2_var = tk.BooleanVar(value=True)
+        self.check_phrase2 = tk.Checkbutton(
+            frame_phrases,
+            text="Enable phrase2",
+            variable=self.enable_phrase2_var,
+            command=self.toggle_phrase2
+        )
+        self.check_phrase2.grid(row=1, column=2, padx=5, sticky="w")
 
         self.btn_define_area = tk.Button(root, text="Define area", command=self.define_area)
         self.btn_define_area.pack(pady=5)
@@ -97,6 +109,17 @@ class StellarApp:
 
         self.btn_stop = tk.Button(root, text="Stop", command=self.stop, state=tk.DISABLED)
         self.btn_stop.pack(pady=5)
+
+    @staticmethod
+    def validate_digits(new_value):
+        return new_value.isdigit()
+
+
+    def toggle_phrase2(self):
+        if self.enable_phrase2_var.get():
+            self.entry_phrase2.config(state="normal")
+        else:
+            self.entry_phrase2.config(state="disabled")
 
     @staticmethod
     def create_log_file():
@@ -119,9 +142,6 @@ class StellarApp:
             version += 1
 
         return log_path
-
-    def validate_digits(self, new_value):
-        return new_value.isdigit() or new_value == ""
 
     def log_info(self, message):
         """
@@ -199,16 +219,21 @@ class StellarApp:
             messagebox.showwarning("Missing area definition", "Fix area definition first!")
             return
 
-        raw_phrase1 = self.entry_phrase1.get()
-        raw_phrase2 = self.entry_phrase2.get()
+        raw_phrase1 = self.entry_phrase1.get().strip()
+
+        if self.enable_phrase2_var.get():
+            raw_phrase2 = self.entry_phrase2.get().strip()
+        else:
+            raw_phrase2 = ""
+
         self.phrase1 = re.sub(r"\s+", "", raw_phrase1).lower()
         self.phrase2 = re.sub(r"\s+", "", raw_phrase2).lower()
 
-        if not self.phrase1 or not self.phrase2:
-            messagebox.showwarning("Missing phrases", "You have to input both phrases")
+        if not self.phrase1:
+            messagebox.showwarning("Missing phrases", "You have to input phrase1!")
             return
 
-        self.log_info(f"Start OCR - phrase1={self.phrase1}, phrase2={self.phrase2}")
+        self.log_info(f"Start OCR - phrase1={self.phrase1}, phrase2={self.phrase2} (enabled={self.enable_phrase2_var.get()})")
 
         self.running = True
         self.btn_stop.config(state=tk.NORMAL)
@@ -230,7 +255,6 @@ class StellarApp:
             screenshot = pyautogui.screenshot(region=(x, y, w, h))
 
             text = pytesseract.image_to_string(screenshot)
-
             text = re.sub(r"\s+", "", text).lower()
             text = re.sub(r'([A-Za-z]+)4(\d)', r'\1+\2', text)
 
@@ -243,21 +267,22 @@ class StellarApp:
             found_phrase1 = (self.phrase1 in text) if self.phrase1 else False
             found_phrase2 = (self.phrase2 in text) if self.phrase2 else False
 
-            if found_phrase1 and found_phrase2:
+            if found_phrase1 and self.enable_phrase2_var.get() and found_phrase2:
                 messagebox.showinfo("Found it!", "Hopefully that's what you have been looking for")
                 self.log_info("Both found - finish")
                 self.stop()
-            elif found_phrase1 or found_phrase2:
+            elif found_phrase1 and not self.enable_phrase2_var.get():
+                messagebox.showinfo("Found it!", "Phrase1 found, phrase2 disabled.")
+                self.log_info("Phrase1 found - finish (phrase2 disabled).")
+                self.stop()
+            elif (found_phrase1 and self.enable_phrase2_var.get() and not found_phrase2) or \
+                 (found_phrase2 and found_phrase1 is False):
                 self.log_info(f"One found, text={text} -> Another attempt.")
-                pyautogui.click(button='left')
                 time.sleep(1)
-                pyautogui.click(button='left')
                 time.sleep(0.3)
                 self.root.after(100, self.loop_ocr)
             else:
-                pyautogui.click(button='left')
                 time.sleep(1)
-                pyautogui.click(button='left')
                 time.sleep(0.3)
                 self.root.after(100, self.loop_ocr)
 
