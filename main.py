@@ -47,7 +47,6 @@ class StellarApp:
         self.root.attributes("-topmost", True)
 
         self.overlay_window = None
-
         self.area = None
         self.area_start = None
         self.area_end = None
@@ -65,7 +64,7 @@ class StellarApp:
                 "1) Press 'Define area'\n"
                 "2) Press & hold LMB, drag across to the opposite corner,\n"
                 "   then release LMB.\n"
-                "3) Type in phrase1 (Penetration) and phrase2 (+15)\n"
+                "3) Type in phrase1 (Penetration) and phrase2 (15)\n"
                 "4) Press 'Start' and place mouse cursor \n"
                 "   on 'Imprint' button in the game.\n"
             )
@@ -76,10 +75,14 @@ class StellarApp:
         frame_phrases.pack(pady=5)
 
         label_phrase1 = tk.Label(frame_phrases, text="Phrase 1 (Penetration):")
-        label_phrase2 = tk.Label(frame_phrases, text="Phrase 2 (+15):")
+        label_phrase2 = tk.Label(frame_phrases, text="Phrase 2 (15):")
+
+        vcmd = (self.root.register(self.validate_digits), '%P')
 
         self.entry_phrase1 = tk.Entry(frame_phrases, width=25)
-        self.entry_phrase2 = tk.Entry(frame_phrases, width=25)
+        self.entry_phrase2 = tk.Entry(frame_phrases, width=25,
+                                      validate='key',
+                                      validatecommand=vcmd)
 
         label_phrase1.grid(row=0, column=0, padx=5, sticky="e")
         self.entry_phrase1.grid(row=0, column=1, padx=5)
@@ -95,7 +98,8 @@ class StellarApp:
         self.btn_stop = tk.Button(root, text="Stop", command=self.stop, state=tk.DISABLED)
         self.btn_stop.pack(pady=5)
 
-    def create_log_file(self):
+    @staticmethod
+    def create_log_file():
         """
         Creates directory stellarlink_logs in user home directory and
         returns path to new log file in that dir.
@@ -115,6 +119,9 @@ class StellarApp:
             version += 1
 
         return log_path
+
+    def validate_digits(self, new_value):
+        return new_value.isdigit() or new_value == ""
 
     def log_info(self, message):
         """
@@ -231,6 +238,7 @@ class StellarApp:
                 text = text.replace("stellarforce4", "stellarforce+")
 
             self.log_info(f"OCR text: {text}")
+            print(text)
 
             found_phrase1 = (self.phrase1 in text) if self.phrase1 else False
             found_phrase2 = (self.phrase2 in text) if self.phrase2 else False
