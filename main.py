@@ -62,14 +62,12 @@ class StellarApp:
             root,
             text=(
                 "STEPS:\n"
-                "1) Press define area 'Define area'\n"
-                "2) Press and hold LMB and drag it across\n"
-                "   to opposite corner.\n"
-                "   Pull off LMB to apply the AREA\n"
-                "3) Type in phrase 1 - for stellar option\n"
-                "   phrase 2 - for stellar force value \n"
-                "4) Press 'Start' and move ur mouse cursor to\n"
-                "   where 'Imprint' button is within the game"
+                "1) Press 'Define area'\n"
+                "2) Press & hold LMB, drag across to the opposite corner,\n"
+                "   then release LMB.\n"
+                "3) Type in phrase1 (Penetration) and phrase2 (+15)\n"
+                "4) Press 'Start' and place mouse cursor \n"
+                "   on 'Imprint' button in the game.\n"
             )
         )
         label_info.pack(pady=5)
@@ -100,12 +98,9 @@ class StellarApp:
     def create_log_file(self):
         """
         Creates directory stellarlink_logs in user home directory and
-        returns path to new log file in this dir
-
-        File name format: YYYY-MM-DD_HH-MM-SS.txt
-        If file exists, then it adds _v2, _v3, etc.
+        returns path to new log file in that dir.
+        If file exists, appends _v2, _v3, etc.
         """
-
         home_dir = os.path.expanduser("~")
         log_dir = os.path.join(home_dir, "stellarlink_logs")
         os.makedirs(log_dir, exist_ok=True)
@@ -123,19 +118,27 @@ class StellarApp:
 
     def log_info(self, message):
         """
-        Adds line with timestamp to log file (self.log_file_path).
+        Adds a line with timestamp to the log file.
         """
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        line = f"[{timestamp}] {message}\n"
+        line = f"[{timestamp}] INFO: {message}\n"
+        with open(self.log_file_path, mode="a", encoding="utf-8") as f:
+            f.write(line)
 
+    def log_error(self, exception):
+        """
+        Logs an error (exception) with a timestamp.
+        """
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        line = f"[{timestamp}] ERROR: {type(exception).__name__} - {str(exception)}\n"
         with open(self.log_file_path, mode="a", encoding="utf-8") as f:
             f.write(line)
 
     def define_area(self):
         messagebox.showinfo(
             "Instruction",
-            "Go to the game screen, press LMB and hold it,\n"
-            "drag it across to the opposite corner."
+            "Go to the game screen, press & hold LMB,\n"
+            "drag across to the opposite corner, then release."
         )
         self.area_start = None
         self.area_end = None
@@ -173,7 +176,8 @@ class StellarApp:
             height = bottom - top
 
             if width <= 0 or height <= 0:
-                messagebox.showerror("Error", "Wrong area definition")
+                messagebox.showerror("Error", "Wrong area definition (width or height <= 0).")
+                self.log_info("Area definition error - zero or negative dimension.")
                 return
 
             self.area = (left, top, width, height)
@@ -208,44 +212,51 @@ class StellarApp:
         self.running = False
         self.btn_stop.config(state=tk.DISABLED)
         self.btn_start.config(state=tk.NORMAL)
-
         self.log_info("Stop OCR - end of loop.")
 
     def loop_ocr(self):
         if not self.running:
             return
 
-        x, y, w, h = self.area
-        screenshot = pyautogui.screenshot(region=(x, y, w, h))
-        text = pytesseract.image_to_string(screenshot)
-        text = re.sub(r"\s+", "", text).lower()
-        text = re.sub(r'([A-Za-z]+)4(\d)', r'\1+\2', text)
+        try:
+            x, y, w, h = self.area
+            screenshot = pyautogui.screenshot(region=(x, y, w, h))
 
-        if "stellarforce4" in text:
-            text = text.replace("stellarforce4", "stellarforce+")
+            text = pytesseract.image_to_string(screenshot)
 
-        self.log_info(f"OCR text: {text}")
+            text = re.sub(r"\s+", "", text).lower()
+            text = re.sub(r'([A-Za-z]+)4(\d)', r'\1+\2', text)
 
-        found_phrase1 = (self.phrase1 in text) if self.phrase1 else False
-        found_phrase2 = (self.phrase2 in text) if self.phrase2 else False
+            if "stellarforce4" in text:
+                text = text.replace("stellarforce4", "stellarforce+")
 
-        if found_phrase1 and found_phrase2:
-            messagebox.showinfo("Found it!", "Hopefully that's what you have been looking for")
-            self.log_info("Both found - finish")
+            self.log_info(f"OCR text: {text}")
+
+            found_phrase1 = (self.phrase1 in text) if self.phrase1 else False
+            found_phrase2 = (self.phrase2 in text) if self.phrase2 else False
+
+            if found_phrase1 and found_phrase2:
+                messagebox.showinfo("Found it!", "Hopefully that's what you have been looking for")
+                self.log_info("Both found - finish")
+                self.stop()
+            elif found_phrase1 or found_phrase2:
+                self.log_info(f"One found, text={text} -> Another attempt.")
+                pyautogui.click(button='left')
+                time.sleep(1)
+                pyautogui.click(button='left')
+                time.sleep(0.3)
+                self.root.after(100, self.loop_ocr)
+            else:
+                pyautogui.click(button='left')
+                time.sleep(1)
+                pyautogui.click(button='left')
+                time.sleep(0.3)
+                self.root.after(100, self.loop_ocr)
+
+        except Exception as e:
+            self.log_error(e)
+            messagebox.showerror("Error", f"An error occurred:\n{e}")
             self.stop()
-        elif found_phrase1 or found_phrase2:
-            self.log_info(f"One found: {text}")
-            pyautogui.click(button='left')
-            time.sleep(1)
-            pyautogui.click(button='left')
-            time.sleep(0.3)
-            self.root.after(100, self.loop_ocr)
-        else:
-            pyautogui.click(button='left')
-            time.sleep(1)
-            pyautogui.click(button='left')
-            time.sleep(0.3)
-            self.root.after(100, self.loop_ocr)
 
 
 def main():
