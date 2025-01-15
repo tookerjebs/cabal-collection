@@ -313,7 +313,9 @@ class StellarApp:
                 time.sleep(0.3)
                 self.root.after(100, self.loop_ocr)
             else:
+                pyautogui.click(button='left')
                 time.sleep(1)
+                pyautogui.click(button='left')
                 time.sleep(0.3)
                 self.root.after(100, self.loop_ocr)
 
