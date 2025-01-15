@@ -7,6 +7,7 @@ In case you want to compile it yourself into an .exe file:
  - Convert a Python Script to an executable file: https://www.geeksforgeeks.org/convert-python-script-to-exe-file/
 
 ## How to use
+ 1. Download .rar file, extract it and dont touch the tesseract directory, it is responsible of recognising options that are being rolled.
  1. Open the application as administrator (important, otherwise it cannot access the cabal window)
  2. Define reading area
     - press 'Define area' button
