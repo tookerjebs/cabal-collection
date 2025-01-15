@@ -84,11 +84,10 @@ class StellarApp:
         label_phrase2.grid(row=1, column=0, padx=5, sticky="e")
 
         vcmd = (root.register(self.validate_digits), '%P')
-
         self.entry_phrase2 = tk.Entry(
             frame_phrases, width=25,
             validate='key', validatecommand=vcmd,
-            state="normal"  # włączone
+            state="normal"
         )
         self.entry_phrase2.grid(row=1, column=1, padx=5)
 
@@ -246,6 +245,15 @@ class StellarApp:
         self.btn_start.config(state=tk.NORMAL)
         self.log_info("Stop OCR - end of loop.")
 
+    @staticmethod
+    def numeric_compare(phrase2_int, text):
+        numbers_found = re.findall(r"\d+", text)
+        for num_str in numbers_found:
+            val = int(num_str)
+            if val >= phrase2_int:
+                return True
+        return False
+
     def loop_ocr(self):
         if not self.running:
             return
@@ -253,8 +261,8 @@ class StellarApp:
         try:
             x, y, w, h = self.area
             screenshot = pyautogui.screenshot(region=(x, y, w, h))
-
             text = pytesseract.image_to_string(screenshot)
+
             text = re.sub(r"\s+", "", text).lower()
             text = re.sub(r'([A-Za-z]+)4(\d)', r'\1+\2', text)
 
@@ -265,18 +273,33 @@ class StellarApp:
             print(text)
 
             found_phrase1 = (self.phrase1 in text) if self.phrase1 else False
-            found_phrase2 = (self.phrase2 in text) if self.phrase2 else False
 
+            found_phrase2 = False
+            if self.phrase2:
+                if self.phrase2.isdigit():
+                    p2_int = int(self.phrase2)
+                    found_phrase2 = self.numeric_compare(p2_int, text)
+                else:
+                    found_phrase2 = (self.phrase2 in text)
+
+            # -------------------------
+            # Logic
+            # -------------------------
+            # 1) both found
             if found_phrase1 and self.enable_phrase2_var.get() and found_phrase2:
                 messagebox.showinfo("Found it!", "Hopefully that's what you have been looking for")
                 self.log_info("Both found - finish")
                 self.stop()
+
+            # 2) phrase2 off - phrase1 found
             elif found_phrase1 and not self.enable_phrase2_var.get():
                 messagebox.showinfo("Found it!", "Phrase1 found, phrase2 disabled.")
                 self.log_info("Phrase1 found - finish (phrase2 disabled).")
                 self.stop()
+
+            # 3) Only one of the phrases found
             elif (found_phrase1 and self.enable_phrase2_var.get() and not found_phrase2) or \
-                 (found_phrase2 and found_phrase1 is False):
+                 (found_phrase2 and not found_phrase1):
                 self.log_info(f"One found, text={text} -> Another attempt.")
                 time.sleep(1)
                 time.sleep(0.3)
