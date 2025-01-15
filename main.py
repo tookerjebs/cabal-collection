@@ -170,7 +170,7 @@ class StellarApp:
         self.area_end = None
         self.click_counter = 0
 
-        if self.overlay_window is not None:
+        if hasattr(self, "overlay_window") and self.overlay_window is not None:
             self.overlay_window.close_overlay()
             self.overlay_window = None
 
@@ -219,7 +219,6 @@ class StellarApp:
             return
 
         raw_phrase1 = self.entry_phrase1.get().strip()
-
         if self.enable_phrase2_var.get():
             raw_phrase2 = self.entry_phrase2.get().strip()
         else:
@@ -271,6 +270,15 @@ class StellarApp:
 
             self.log_info(f"OCR text: {text}")
             print(text)
+
+            # Sprawdzamy wszystkie liczby:
+            numbers_found = re.findall(r"\d+", text)
+            if len(numbers_found) > 1:
+                messagebox.showinfo("Multiple numbers", "Found more than one number - stopping.\n"
+                                                        "Make sure that you've defined area correctly.")
+                self.log_info("More than one number found in text. Stopping.")
+                self.stop()
+                return
 
             found_phrase1 = (self.phrase1 in text) if self.phrase1 else False
 
