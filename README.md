@@ -9,16 +9,17 @@ In case you want to compile it yourself into an .exe file:
 
 
 ## How to use
- 1. Download .exe file
- 1. Open the application as administrator (important, otherwise it cannot access the cabal window)
- 2. Define reading area
+ 1. If you're using some unusual font in the game, change it to Tahoma or Arial (Esc -> options -> preferences -> font)
+ 2. Download .exe file
+ 3. Open the application as administrator (important, otherwise it cannot access the cabal window)
+ 4. Define reading area
     - press 'Define area' button
     - information prompt with additional instructions will appear, press 'Ok' to proceed
     - press and hold LMB (left mouse button) drag it acress to opposite corner
     - information prompt will appear with info if you have done it correctly or not
     - if it wasn't defined correctly, please repeat
     - if it was defined correctly, after pressing 'Ok' in the last information prompt - red border will appear around the selected area - it is there to tell you if the area is in the right place or not
- 3. Define phrase1 and phrase2
+ 5. Define phrase1 and phrase2
     1. phrase1 stands for stellar, for example: Penetration
        - it is required
        - make sure that the name you have typed in correct
@@ -29,9 +30,9 @@ In case you want to compile it yourself into an .exe file:
          - if it is enabled, application will run untill both phrase1 and phrase2 is found
          - if its disabled, application will check only for phrase1 (example in the youtube video linked bellow)
        - if the value found by the application is greater than the phrase2 value - it will stop aka you got what you've been looking for
- 5. Press 'Start' button
- 6. Move your cursor to where 'Imprint' button is within the game (stellar link screen)
- 7. Now application will continously read what you have got and keeps pressing 'LMB' untill it find what you have been looking for or untill u stop it manualy by pressing 'Stop' button.
+ 6. Press 'Start' button
+ 7. Move your cursor to where 'Imprint' button is within the game (stellar link screen)
+ 8. Now application will continously read what you have got and keeps pressing 'LMB' untill it find what you have been looking for or untill u stop it manualy by pressing 'Stop' button.
 
 # Important notes
 - application will create folder that will store all the logs in your home directory C:\Users\YOUR_COMPUTER_NAME\stellarlink_logs, it is for both user and developer use to track exceptions and what values have been found by OCR
