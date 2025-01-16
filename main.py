@@ -55,6 +55,7 @@ class StellarApp:
         self.running = False
 
         self.wrong_read_counter = 0
+        self.loop_in_progress = False
 
         self.log_file_path = self.create_log_file()
         self.log_info(f"Application start - log saved in: {self.log_file_path}")
@@ -276,9 +277,9 @@ class StellarApp:
 
             # Sprawdzamy wszystkie liczby:
             numbers_found = re.findall(r"\d+", text)
+            print("self.wrong_read_counter: ", self.wrong_read_counter)
             if len(numbers_found) != 1:
                 self.wrong_read_counter+=1
-                self.root.after(1000, self.loop_ocr)
                 if self.wrong_read_counter > 2:
                     messagebox.showinfo(
                         "Error",
@@ -287,6 +288,9 @@ class StellarApp:
                     )
                     self.log_info("More than one (or zero) numbers found in text. Stopping.")
                     self.stop()
+                    return
+                else:
+                    self.root.after(1000, self.loop_ocr)
                     return
 
             self.wrong_read_counter = 0
@@ -309,12 +313,14 @@ class StellarApp:
                 messagebox.showinfo("Found it!", "Hopefully that's what you have been looking for")
                 self.log_info("Both found - finish")
                 self.stop()
+                return
 
             # 2) phrase2 off - phrase1 found
             elif found_phrase1 and not self.enable_phrase2_var.get():
                 messagebox.showinfo("Found it!", "Phrase1 found, phrase2 disabled.")
                 self.log_info("Phrase1 found - finish (phrase2 disabled).")
                 self.stop()
+                return
 
             else:
                 pyautogui.click(button='left')
