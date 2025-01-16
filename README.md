@@ -35,6 +35,12 @@ In case you want to compile it yourself into an .exe file:
 # Important notes
 - application will create folder that will store all the logs in your home directory C:\Users\YOUR_COMPUTER_NAME\stellarlink_logs, it is for both user and developer use to track exceptions and what values have been found by OCR
 - why is the .exe file so big - because it includes all the additional required files like whole OCR (https://github.com/tesseract-ocr/tesseract)
+- how is it working?
+  - application takes screenshot of the area that you have defined
+  - OCR then gets all the strings that are one the photo and returns to app
+  - then application processes this data - if it's legit and contains the phrases
+  - next step is either success or repeat the process
+- **I would highly recommend to watch the showcase video and pay attention to the area definition and state of stellar window**
  
 If you have any questions or need assistance contact me on Discord (aquazz) or hit me up ingame (Revolwer).
 
