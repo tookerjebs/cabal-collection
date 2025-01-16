@@ -54,6 +54,8 @@ class StellarApp:
         self.listener = None
         self.running = False
 
+        self.wrong_read_counter = 0
+
         self.log_file_path = self.create_log_file()
         self.log_info(f"Application start - log saved in: {self.log_file_path}")
 
@@ -183,8 +185,8 @@ class StellarApp:
                 else:
                     if self.click_counter == 1:
                         self.area_end = (x, y)
-                        self.calculate_area()
                         self.listener.stop()
+                        self.root.after(10, self.calculate_area)
                         self.click_counter += 1
 
         self.listener = mouse.Listener(on_click=on_click)
@@ -204,6 +206,7 @@ class StellarApp:
             if width <= 0 or height <= 0:
                 messagebox.showerror("Error", "Wrong area definition (width or height <= 0).")
                 self.log_info("Area definition error - zero or negative dimension.")
+                self.area = None
                 return
 
             self.area = (left, top, width, height)
@@ -273,12 +276,20 @@ class StellarApp:
 
             # Sprawdzamy wszystkie liczby:
             numbers_found = re.findall(r"\d+", text)
-            if len(numbers_found) > 1:
-                messagebox.showinfo("Multiple numbers", "Found more than one number - stopping.\n"
-                                                        "Make sure that you've defined area correctly.")
-                self.log_info("More than one number found in text. Stopping.")
-                self.stop()
-                return
+            if len(numbers_found) != 1:
+                self.wrong_read_counter+=1
+                self.root.after(1000, self.loop_ocr)
+                if self.wrong_read_counter > 2:
+                    messagebox.showinfo(
+                        "Error",
+                        "Found wrong amount of numbers - stopping.\n"
+                        "Make sure that you've defined area correctly, please restart application"
+                    )
+                    self.log_info("More than one (or zero) numbers found in text. Stopping.")
+                    self.stop()
+                    return
+
+            self.wrong_read_counter = 0
 
             found_phrase1 = (self.phrase1 in text) if self.phrase1 else False
 
@@ -305,19 +316,11 @@ class StellarApp:
                 self.log_info("Phrase1 found - finish (phrase2 disabled).")
                 self.stop()
 
-            # 3) Only one of the phrases found
-            elif (found_phrase1 and self.enable_phrase2_var.get() and not found_phrase2) or \
-                 (found_phrase2 and not found_phrase1):
-                self.log_info(f"One found, text={text} -> Another attempt.")
-                time.sleep(1)
-                time.sleep(0.3)
-                self.root.after(100, self.loop_ocr)
             else:
                 pyautogui.click(button='left')
-                time.sleep(1)
+                time.sleep(1.5)
                 pyautogui.click(button='left')
-                time.sleep(0.3)
-                self.root.after(100, self.loop_ocr)
+                self.root.after(800, self.loop_ocr)
 
         except Exception as e:
             self.log_error(e)
