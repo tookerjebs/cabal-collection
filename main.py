@@ -125,11 +125,6 @@ class StellarApp:
 
     @staticmethod
     def create_log_file():
-        """
-        Creates directory stellarlink_logs in user home directory and
-        returns path to new log file in that dir.
-        If file exists, appends _v2, _v3, etc.
-        """
         home_dir = os.path.expanduser("~")
         log_dir = os.path.join(home_dir, "stellarlink_logs")
         os.makedirs(log_dir, exist_ok=True)
@@ -146,18 +141,12 @@ class StellarApp:
         return log_path
 
     def log_info(self, message):
-        """
-        Adds a line with timestamp to the log file.
-        """
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         line = f"[{timestamp}] INFO: {message}\n"
         with open(self.log_file_path, mode="a", encoding="utf-8") as f:
             f.write(line)
 
     def log_error(self, exception):
-        """
-        Logs an error (exception) with a timestamp.
-        """
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         line = f"[{timestamp}] ERROR: {type(exception).__name__} - {str(exception)}\n"
         with open(self.log_file_path, mode="a", encoding="utf-8") as f:
@@ -258,8 +247,14 @@ class StellarApp:
         return False
 
     def loop_ocr(self):
+        if self.loop_in_progress:
+            self.log_info("loop_ocr called but loop_in_progress is True - skipping re-entrance.")
+            return
+
         if not self.running:
             return
+
+        self.loop_in_progress = True
 
         try:
             x, y, w, h = self.area
@@ -275,11 +270,10 @@ class StellarApp:
             self.log_info(f"OCR text: {text}")
             print(text)
 
-            # Sprawdzamy wszystkie liczby:
             numbers_found = re.findall(r"\d+", text)
-            print("self.wrong_read_counter: ", self.wrong_read_counter)
+            print("self.wrong_read_counter:", self.wrong_read_counter)
             if len(numbers_found) != 1:
-                self.wrong_read_counter+=1
+                self.wrong_read_counter += 1
                 if self.wrong_read_counter > 2:
                     messagebox.showinfo(
                         "Error",
@@ -288,9 +282,11 @@ class StellarApp:
                     )
                     self.log_info("More than one (or zero) numbers found in text. Stopping.")
                     self.stop()
+                    self.loop_in_progress = False
                     return
                 else:
-                    self.root.after(1000, self.loop_ocr)
+                    self.loop_in_progress = False
+                    self.root.after(500, self.loop_ocr)
                     return
 
             self.wrong_read_counter = 0
@@ -305,33 +301,29 @@ class StellarApp:
                 else:
                     found_phrase2 = (self.phrase2 in text)
 
-            # -------------------------
-            # Logic
-            # -------------------------
-            # 1) both found
+            # ---- Logic
             if found_phrase1 and self.enable_phrase2_var.get() and found_phrase2:
                 messagebox.showinfo("Found it!", "Hopefully that's what you have been looking for")
                 self.log_info("Both found - finish")
                 self.stop()
-                return
-
-            # 2) phrase2 off - phrase1 found
             elif found_phrase1 and not self.enable_phrase2_var.get():
                 messagebox.showinfo("Found it!", "Phrase1 found, phrase2 disabled.")
                 self.log_info("Phrase1 found - finish (phrase2 disabled).")
                 self.stop()
-                return
-
             else:
                 pyautogui.click(button='left')
                 time.sleep(1.5)
                 pyautogui.click(button='left')
-                self.root.after(800, self.loop_ocr)
+                self.loop_in_progress = False
+                self.root.after(500, self.loop_ocr)
+                return
 
         except Exception as e:
             self.log_error(e)
             messagebox.showerror("Error", f"An error occurred:\n{e}")
             self.stop()
+
+        self.loop_in_progress = False
 
 
 def main():
