@@ -27,6 +27,7 @@ In case you want to compile it yourself into an .exe file:
        - on the right side of the input is checkbox that enables or disables phrase2 input
          - if it is enabled, application will run untill both phrase1 and phrase2 is found
          - if its disabled, application will check only for phrase1 (example in the youtube video linked bellow)
+       - if the value found by the application is greater than the phrase2 value - it will stop aka you got what you've been looking for
  5. Press 'Start' button
  6. Move your cursor to where 'Imprint' button is within the game (stellar link screen)
  7. Now application will continously read what you have got and keeps pressing 'LMB' untill it find what you have been looking for or untill u stop it manualy by pressing 'Stop' button.
