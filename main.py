@@ -85,16 +85,22 @@ class StellarApp:
         label_phrase1 = tk.Label(frame_phrases, text="Phrase 1 (Penetration):")
         label_phrase1.grid(row=0, column=0, padx=5, sticky="e")
 
-        self.entry_phrase1 = tk.Entry(frame_phrases, width=25)
+        vcmd_phrase1 = (root.register(self.validate_letters_spaces), '%P')
+        self.entry_phrase1 = tk.Entry(
+            frame_phrases,
+            width=25,
+            validate='key',
+            validatecommand=vcmd_phrase1
+        )
         self.entry_phrase1.grid(row=0, column=1, padx=5)
 
         label_phrase2 = tk.Label(frame_phrases, text="Phrase 2 (15):")
         label_phrase2.grid(row=1, column=0, padx=5, sticky="e")
 
-        vcmd = (root.register(self.validate_digits), '%P')
+        vcmd_phrase2 = (root.register(self.validate_digits), '%P')
         self.entry_phrase2 = tk.Entry(
             frame_phrases, width=25,
-            validate='key', validatecommand=vcmd,
+            validate='key', validatecommand=vcmd_phrase2,
             state="normal"
         )
         self.entry_phrase2.grid(row=1, column=1, padx=5)
@@ -116,6 +122,13 @@ class StellarApp:
 
         self.btn_stop = tk.Button(root, text="Stop", command=self.stop, state=tk.DISABLED)
         self.btn_stop.pack(pady=5)
+
+    # ----- METODY WALIDACJI -----
+    @staticmethod
+    def validate_letters_spaces(new_value):
+        if new_value == "":
+            return True
+        return all(ch.isalpha() or ch.isspace() for ch in new_value)
 
     @staticmethod
     def validate_digits(new_value):
