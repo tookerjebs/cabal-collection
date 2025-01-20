@@ -57,6 +57,11 @@ class StellarApp:
         self.wrong_read_counter = 0
         self.loop_in_progress = False
 
+        self.exceptions_for_penetration = [
+            "ignore",
+            "cancel"
+        ]
+
         self.log_file_path = self.create_log_file()
         self.log_info(f"Application start - log saved in: {self.log_file_path}")
 
@@ -114,8 +119,7 @@ class StellarApp:
 
     @staticmethod
     def validate_digits(new_value):
-        return new_value.isdigit()
-
+        return new_value.isdigit() or new_value == ""
 
     def toggle_phrase2(self):
         if self.enable_phrase2_var.get():
@@ -291,7 +295,16 @@ class StellarApp:
 
             self.wrong_read_counter = 0
 
-            found_phrase1 = (self.phrase1 in text) if self.phrase1 else False
+            found_phrase1 = False
+            if self.phrase1:
+                if self.phrase1 in text:
+                    if self.phrase1 == "penetration":
+                        if any(exc in text for exc in self.exceptions_for_penetration):
+                            self.log_info("Found 'penetration' but ignoring special exception phrase.")
+                        else:
+                            found_phrase1 = True
+                    else:
+                        found_phrase1 = True
 
             found_phrase2 = False
             if self.phrase2:
@@ -301,7 +314,6 @@ class StellarApp:
                 else:
                     found_phrase2 = (self.phrase2 in text)
 
-            # ---- Logic
             if found_phrase1 and self.enable_phrase2_var.get() and found_phrase2:
                 messagebox.showinfo("Found it!", "Hopefully that's what you have been looking for")
                 self.log_info("Both found - finish")
