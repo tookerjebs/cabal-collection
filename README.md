@@ -23,6 +23,7 @@ In case you want to compile it yourself into an .exe file:
     1. phrase1 stands for stellar, for example: Penetration
        - it is required
        - make sure that the name you have typed in correct
+       - you can input only letters and white chars (spacebar)
     2. phrase2 stands for stellar force, for example: +15
        - is not required
        - you can input only digits
@@ -36,6 +37,7 @@ In case you want to compile it yourself into an .exe file:
 
 # Important notes
 - application will create folder that will store all the logs in your home directory C:\Users\YOUR_COMPUTER_NAME\stellarlink_logs, it is for both user and developer use to track exceptions and what values have been found by OCR
+- always use it on main screen - if you have 2 screens plugged and you move the app to the second screen then the software will print wrong area coordinates - it has to be done on main screen
 - why is the .exe file so big - because it includes all the additional required files like whole OCR (https://github.com/tesseract-ocr/tesseract)
 - how is it working?
   - application takes screenshot of the area that you have defined
