@@ -9,7 +9,7 @@ In case you want to compile it yourself into an .exe file:
 
 
 ## How to use
- 1. If you're using some unusual font in the game, change it to Tahoma or Arial (Esc -> options -> preferences -> font)
+ 1. If you're using some unusual font in the game, change it to Tahoma (Esc -> options -> preferences -> font)
  2. Download .exe file
  3. Open the application as administrator (important, otherwise it cannot access the cabal window)
  4. Define reading area
