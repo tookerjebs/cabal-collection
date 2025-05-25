@@ -42,8 +42,7 @@ class OverlayWindow(tk.Toplevel):
 
 class StellarApp:
     def __init__(self, root):
-        self.phrase1 = None
-        self.phrase2 = None
+        root.geometry("520x440")
         self.delay_ms = 500
         self.ping_ms = 50
         self.root = root
@@ -77,7 +76,7 @@ class StellarApp:
                 "1) Press 'Define area'\n"
                 "2) Press & hold LMB, drag across to the opposite corner,\n"
                 "   then release LMB.\n"
-                "3) Select Option name from available options"
+                "3) Select Option name from available options\n"
                 "4) Type in minimum value or disable it\n"
                 "4) Press 'Start' and place mouse cursor\n"
                 "   on 'Imprint' button in the game.\n"
@@ -88,10 +87,10 @@ class StellarApp:
         frame_phrases = tk.Frame(root)
         frame_phrases.pack(pady=5)
 
-        label_phrase1 = tk.Label(frame_phrases, text="Option name")
-        label_phrase1.grid(row=0, column=0, padx=5, sticky="e")
+        label_optionName = tk.Label(frame_phrases, text="Option name")
+        label_optionName.grid(row=0, column=0, padx=5, sticky="e")
 
-        self.phrase1_options = [
+        self.optionName_options = [
             "PVE Penetration",
             "PVE Critical DMG",
             "All Attack UP",
@@ -99,34 +98,34 @@ class StellarApp:
             "Critical DMG."
         ]
 
-        self.combo_phrase1 = ttk.Combobox(
+        self.combo_optionName = ttk.Combobox(
             frame_phrases,
-            values=self.phrase1_options,
+            values=self.optionName_options,
             state="readonly",
             width=22
         )
-        self.combo_phrase1.current(0)
-        self.combo_phrase1.grid(row=0, column=1, padx=5)
+        self.combo_optionName.current(0)
+        self.combo_optionName.grid(row=0, column=1, padx=5)
 
-        label_phrase2 = tk.Label(frame_phrases, text="Option min value:")
-        label_phrase2.grid(row=1, column=0, padx=5, sticky="e")
+        label_optionMinValue = tk.Label(frame_phrases, text="Option min value:")
+        label_optionMinValue.grid(row=1, column=0, padx=5, sticky="e")
 
-        vcmd_phrase2 = (root.register(self.validate_digits), '%P')
-        self.entry_phrase2 = tk.Entry(
+        vcmd_optionMinValue = (root.register(self.validate_digits), '%P')
+        self.entry_optionMinValue = tk.Entry(
             frame_phrases, width=25,
-            validate='key', validatecommand=vcmd_phrase2,
+            validate='key', validatecommand=vcmd_optionMinValue,
             state="normal"
         )
-        self.entry_phrase2.grid(row=1, column=1, padx=5)
+        self.entry_optionMinValue.grid(row=1, column=1, padx=5)
 
-        self.enable_phrase2_var = tk.BooleanVar(value=True)
-        self.check_phrase2 = tk.Checkbutton(
+        self.enable_optionMinValue_var = tk.BooleanVar(value=True)
+        self.check_optionMinValue = tk.Checkbutton(
             frame_phrases,
             text="Enable min value",
-            variable=self.enable_phrase2_var,
-            command=self.toggle_phrase2
+            variable=self.enable_optionMinValue_var,
+            command=self.toggle_optionMinValue
         )
-        self.check_phrase2.grid(row=1, column=2, padx=5, sticky="w")
+        self.check_optionMinValue.grid(row=1, column=2, padx=5, sticky="w")
 
         label_ms = tk.Label(frame_phrases, text="MS (Ping):")
         label_ms.grid(row=2, column=0, padx=5, sticky="e")
@@ -153,11 +152,11 @@ class StellarApp:
     def validate_digits(new_value):
         return new_value.isdigit() or new_value == ""
 
-    def toggle_phrase2(self):
-        if self.enable_phrase2_var.get():
-            self.entry_phrase2.config(state="normal")
+    def toggle_optionMinValue(self):
+        if self.enable_optionMinValue_var.get():
+            self.entry_optionMinValue.config(state="normal")
         else:
-            self.entry_phrase2.config(state="disabled")
+            self.entry_optionMinValue.config(state="disabled")
 
     @staticmethod
     def create_log_file():
@@ -247,14 +246,14 @@ class StellarApp:
             messagebox.showwarning("Missing area definition", "Fix area definition first!")
             return
 
-        raw_phrase1 = self.combo_phrase1.get().strip()
-        if self.enable_phrase2_var.get():
-            raw_phrase2 = self.entry_phrase2.get().strip()
+        raw_optionName = self.combo_optionName.get().strip()
+        if self.enable_optionMinValue_var.get():
+            raw_optionMinValue = self.entry_optionMinValue.get().strip()
         else:
-            raw_phrase2 = ""
+            raw_optionMinValue = ""
 
-        self.phrase1 = re.sub(r"\s+", "", raw_phrase1).lower()
-        self.phrase2 = re.sub(r"\s+", "", raw_phrase2).lower()
+        self.optionName = re.sub(r"\s+", "", raw_optionName).lower()
+        self.optionMinValue = re.sub(r"\s+", "", raw_optionMinValue).lower()
 
         try:
             self.ping_ms = int(self.entry_ms.get().strip() or 50)
@@ -263,7 +262,7 @@ class StellarApp:
 
         self.delay_ms += self.ping_ms
 
-        self.log_info(f"Start OCR - phrase1={self.phrase1}, phrase2={self.phrase2} (enabled={self.enable_phrase2_var.get()})")
+        self.log_info(f"Start OCR - optionName={self.optionName}, optionMinValue={self.optionMinValue} (enabled={self.enable_optionMinValue_var.get()})")
 
         self.running = True
         self.btn_stop.config(state=tk.NORMAL)
@@ -277,11 +276,11 @@ class StellarApp:
         self.log_info("Stop OCR - end of loop.")
 
     @staticmethod
-    def numeric_compare(phrase2_int, text):
+    def numeric_compare(optionMinValue_int, text):
         numbers_found = re.findall(r"\d+", text)
         for num_str in numbers_found:
             val = int(num_str)
-            if val >= phrase2_int:
+            if val >= optionMinValue_int:
                 return True
         return False
 
@@ -330,32 +329,32 @@ class StellarApp:
 
             self.wrong_read_counter = 0
 
-            found_phrase1 = False
-            if self.phrase1:
-                if self.phrase1 in text:
-                    if self.phrase1 == "penetration":
+            found_optionName = False
+            if self.optionName:
+                if self.optionName in text:
+                    if self.optionName == "penetration":
                         if any(exc in text for exc in self.exceptions_for_penetration):
                             self.log_info("Found 'penetration' but ignoring special exception phrase.")
                         else:
-                            found_phrase1 = True
+                            found_optionName = True
                     else:
-                        found_phrase1 = True
+                        found_optionName = True
 
-            found_phrase2 = False
-            if self.phrase2:
-                if self.phrase2.isdigit():
-                    p2_int = int(self.phrase2)
-                    found_phrase2 = self.numeric_compare(p2_int, text)
+            found_optionMinValue = False
+            if self.optionMinValue:
+                if self.optionMinValue.isdigit():
+                    p2_int = int(self.optionMinValue)
+                    found_optionMinValue = self.numeric_compare(p2_int, text)
                 else:
-                    found_phrase2 = (self.phrase2 in text)
+                    found_optionMinValue = (self.optionMinValue in text)
 
-            if found_phrase1 and self.enable_phrase2_var.get() and found_phrase2:
+            if found_optionName and self.enable_optionMinValue_var.get() and found_optionMinValue:
                 messagebox.showinfo("Found it!", "Hopefully that's what you have been looking for")
                 self.log_info("Both found - finish")
                 self.stop()
-            elif found_phrase1 and not self.enable_phrase2_var.get():
-                messagebox.showinfo("Found it!", "Phrase1 found, phrase2 disabled.")
-                self.log_info("Phrase1 found - finish (phrase2 disabled).")
+            elif found_optionName and not self.enable_optionMinValue_var.get():
+                messagebox.showinfo("Found it!", "Option found, minimum value disabled.")
+                self.log_info("Option found - finish (minimum value disabled).")
                 self.stop()
             else:
                 pyautogui.click(button='left')
