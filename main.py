@@ -358,7 +358,7 @@ class StellarApp:
                 self.stop()
             else:
                 pyautogui.click(button='left')
-                time.sleep(1.5)
+                time.sleep(1.5 + (self.ping_ms / 2))
                 pyautogui.click(button='left')
                 self.loop_in_progress = False
                 self.root.after(self.delay_ms, self.loop_ocr)
