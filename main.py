@@ -8,6 +8,7 @@ import os
 import datetime
 import sys
 from pynput import mouse
+from tkinter import ttk
 
 base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
 tesseract_path = os.path.join(base_path, "Tesseract", "tesseract.exe")
@@ -41,8 +42,12 @@ class OverlayWindow(tk.Toplevel):
 
 class StellarApp:
     def __init__(self, root):
+        self.phrase1 = None
+        self.phrase2 = None
+        self.delay_ms = 500
+        self.ping_ms = 50
         self.root = root
-        self.root.title("Stellar OCR Demo")
+        self.root.title("Stellar OCR - v1")
 
         self.root.attributes("-topmost", True)
 
@@ -72,7 +77,8 @@ class StellarApp:
                 "1) Press 'Define area'\n"
                 "2) Press & hold LMB, drag across to the opposite corner,\n"
                 "   then release LMB.\n"
-                "3) Type in phrase1 (Penetration) and phrase2 (15)\n"
+                "3) Select Option name from available options"
+                "4) Type in minimum value or disable it\n"
                 "4) Press 'Start' and place mouse cursor\n"
                 "   on 'Imprint' button in the game.\n"
             )
@@ -82,19 +88,27 @@ class StellarApp:
         frame_phrases = tk.Frame(root)
         frame_phrases.pack(pady=5)
 
-        label_phrase1 = tk.Label(frame_phrases, text="Phrase 1 (Penetration):")
+        label_phrase1 = tk.Label(frame_phrases, text="Option name")
         label_phrase1.grid(row=0, column=0, padx=5, sticky="e")
 
-        vcmd_phrase1 = (root.register(self.validate_letters_spaces), '%P')
-        self.entry_phrase1 = tk.Entry(
-            frame_phrases,
-            width=25,
-            validate='key',
-            validatecommand=vcmd_phrase1
-        )
-        self.entry_phrase1.grid(row=0, column=1, padx=5)
+        self.phrase1_options = [
+            "PVE Penetration",
+            "PVE Critical DMG",
+            "All Attack UP",
+            "Penetration",
+            "Critical DMG."
+        ]
 
-        label_phrase2 = tk.Label(frame_phrases, text="Phrase 2 (15):")
+        self.combo_phrase1 = ttk.Combobox(
+            frame_phrases,
+            values=self.phrase1_options,
+            state="readonly",
+            width=22
+        )
+        self.combo_phrase1.current(0)
+        self.combo_phrase1.grid(row=0, column=1, padx=5)
+
+        label_phrase2 = tk.Label(frame_phrases, text="Option min value:")
         label_phrase2.grid(row=1, column=0, padx=5, sticky="e")
 
         vcmd_phrase2 = (root.register(self.validate_digits), '%P')
@@ -108,11 +122,23 @@ class StellarApp:
         self.enable_phrase2_var = tk.BooleanVar(value=True)
         self.check_phrase2 = tk.Checkbutton(
             frame_phrases,
-            text="Enable phrase2",
+            text="Enable min value",
             variable=self.enable_phrase2_var,
             command=self.toggle_phrase2
         )
         self.check_phrase2.grid(row=1, column=2, padx=5, sticky="w")
+
+        label_ms = tk.Label(frame_phrases, text="MS (Ping):")
+        label_ms.grid(row=2, column=0, padx=5, sticky="e")
+
+        vcmd_ms = (root.register(self.validate_digits), '%P')
+        self.entry_ms = tk.Entry(
+            frame_phrases, width=25,
+            validate='key', validatecommand=vcmd_ms,
+            state="normal"
+        )
+        self.entry_ms.insert(0, "50")
+        self.entry_ms.grid(row=2, column=1, padx=5)
 
         self.btn_define_area = tk.Button(root, text="Define area", command=self.define_area)
         self.btn_define_area.pack(pady=5)
@@ -122,13 +148,6 @@ class StellarApp:
 
         self.btn_stop = tk.Button(root, text="Stop", command=self.stop, state=tk.DISABLED)
         self.btn_stop.pack(pady=5)
-
-    # ----- METODY WALIDACJI -----
-    @staticmethod
-    def validate_letters_spaces(new_value):
-        if new_value == "":
-            return True
-        return all(ch.isalpha() or ch.isspace() for ch in new_value)
 
     @staticmethod
     def validate_digits(new_value):
@@ -228,7 +247,7 @@ class StellarApp:
             messagebox.showwarning("Missing area definition", "Fix area definition first!")
             return
 
-        raw_phrase1 = self.entry_phrase1.get().strip()
+        raw_phrase1 = self.combo_phrase1.get().strip()
         if self.enable_phrase2_var.get():
             raw_phrase2 = self.entry_phrase2.get().strip()
         else:
@@ -237,16 +256,19 @@ class StellarApp:
         self.phrase1 = re.sub(r"\s+", "", raw_phrase1).lower()
         self.phrase2 = re.sub(r"\s+", "", raw_phrase2).lower()
 
-        if not self.phrase1:
-            messagebox.showwarning("Missing phrases", "You have to input phrase1!")
-            return
+        try:
+            self.ping_ms = int(self.entry_ms.get().strip() or 50)
+        except ValueError:
+            self.ping_ms = 50
+
+        self.delay_ms += self.ping_ms
 
         self.log_info(f"Start OCR - phrase1={self.phrase1}, phrase2={self.phrase2} (enabled={self.enable_phrase2_var.get()})")
 
         self.running = True
         self.btn_stop.config(state=tk.NORMAL)
         self.btn_start.config(state=tk.DISABLED)
-        self.root.after(100, self.loop_ocr)
+        self.root.after(3000, self.loop_ocr)
 
     def stop(self):
         self.running = False
@@ -303,7 +325,7 @@ class StellarApp:
                     return
                 else:
                     self.loop_in_progress = False
-                    self.root.after(500, self.loop_ocr)
+                    self.root.after(500 + self.ping_ms, self.loop_ocr)
                     return
 
             self.wrong_read_counter = 0
@@ -340,7 +362,7 @@ class StellarApp:
                 time.sleep(1.5)
                 pyautogui.click(button='left')
                 self.loop_in_progress = False
-                self.root.after(500, self.loop_ocr)
+                self.root.after(self.delay_ms, self.loop_ocr)
                 return
 
         except Exception as e:
