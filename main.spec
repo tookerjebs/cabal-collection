@@ -2,23 +2,23 @@
 
 
 a = Analysis(
-    ['main.py'],
+    ['unified_game_automation/main.py'],
     pathex=[],
     binaries=[],
     datas=[
-        ('Tesseract', 'Tesseract'),
+        ('unified_game_automation/Tesseract', 'Tesseract'),
     ],
     hiddenimports=[
-        'pyautogui',
-        'pynput',
         'PIL',
         'pywinauto',
-        'mouse',
         'keyboard',
+        'mouse',
         'win32gui',
         'win32con',
+        'win32ui',
         'threading',
-        'tkinter.ttk'
+        'tkinter.ttk',
+        'pytesseract'
     ],
     hookspath=[],
     hooksconfig={},
@@ -35,12 +35,12 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='StellarOCR_Enhanced',
+    name='Stellar_and_Arrival_Automation',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    upx_dir= your upx dir
+    upx_dir=r'C:\Users\Hello\Desktop\upx',
     upx_exclude=[],
     runtime_tmpdir=None,
     console=True,

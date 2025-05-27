@@ -1,54 +1,44 @@
-# Enhanced Stellar OCR Tool
+# Stellar and Arrival Skill Automation
 
-> **This is a fork of aquazz's stellarlinkg auto imprint** with direct window clicking, visual area selection
+Automated OCR tool for stellar system and arrival skill rerolling.
 
-## ⚡ Key Enhancements
-- **Direct window clicking** - No mouse movement, works in background
-- **Visual area selection** - Drag interface with real-time preview
-- **Emergency kill switch** - Press ESC anytime to stop
+## Features
 
-## 🚀 Quick Start
+- **Arrival Skill Automation** - Dual stat detection and rerolling
+- **Stellar System Automation** - Single stat detection and rerolling  
+- **BitBlt Screen Capture** - Works with background windows
+- **Tesseract OCR** - Fast and accurate text recognition
+- **Direct Window Clicking** - No mouse movement required
+- **Emergency Stop** - ESC key stops automation instantly
 
-### Download
-- **Ready-to-use exe**: Download from [Releases](../../releases)
-- **Build from source**: See build instructions below
+## Usage
 
-### Setup
-1. **Set Imprint Button** - Click "Set Imprint Button" and click the Imprint button in game
-2. **Define OCR Area** - Click "Define area" and drag to select the text area
-3. **Configure Options** - Select stat type and minimum value (optional)
-4. **Start** - Click "Start" and automation begins
+1. **Run the tool** - Start `Stellar_and_Arrival_Automation.exe` always RUN as ADMIN
+2. **Select tab** - Choose "Arrival Skill" or "Stellar System"
+3. **Set coordinates** - Click buttons to set Apply/Change/Imprint positions
+4. **Define area** - Drag to select OCR detection area
+5. **Configure stats** - Select desired stats and minimum values
+6. **Start automation** - Click Start button
 
-### Emergency Stop
-- **Press ESC key anytime** to instantly stop automation
+## Requirements
 
-## 📋 Available Options
-- PVE Penetration
-- PVE Critical DMG
-- All Attack UP
-- Penetration
-- Critical DMG.
-- Ignore Accuracy ( just for testing)
+- Game running in windowed mode
+- Tesseract OCR (included)
+- Windows 10/11
+- use default font in game Tahoma
+- Do not make the UI in game too small or else OCR becomes inaccurate, default setting is fine, or slightly smaller (10-20%)
 
-## 🔧 Build Instructions
+## how to Build
+
 ```bash
-# Install dependencies
+python -m venv venv
+venv\Scripts\activate
 pip install -r requirements_minimal.txt
-
-# Build executable
 pyinstaller main.spec
 ```
 
-## ⚠️ Important Notes
-- **Use at your own risk**
-- **Font**: Use Tahoma font in game (Esc → Options → Preferences → Font)
-- **Logs**: Stored in `C:\Users\[USERNAME]\stellarlink_logs\`
-- **Monitor**: Use on primary screen for accurate coordinates
+## Known Issues
+certain stats with long names like "Arrival Skill Cool Time decreased." collides with the stat value in game. 
+Currently arrival skill cool time and arrival skill duration will trigger a success message with any stat value. you cant set any specific value for it. Possible fix: You reduce the UI size in game settings to minimum, however this will also reduce the OCR accuracy and requires the special case handling to be improved.
 
 
-## 🎮 How It Works
-1. Takes screenshot of defined area
-2. OCR processes the image to extract text
-3. Checks if desired stats are found
-4. Sends direct clicks to game window
-5. Repeats until target found or manually stopped
