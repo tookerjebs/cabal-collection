@@ -99,8 +99,15 @@ class ArrivalAutomation:
         # Print raw OCR text to console for debugging
         print(f"Raw OCR text: {repr(raw_text)}")
 
+        # Fix OCR misreading + as 4 (only when there's no + sign already)
+        import re
+        cleaned_text = re.sub(r'([A-Za-z\s\.]+)\s4(\d)', r'\1 +\2', raw_text)
+
+        # Fix OCR misreading dots as commas
+        cleaned_text = cleaned_text.replace(',', '.')
+
         # Parse for arrival skill format (dual stats, no "Stellar" text)
-        return self.parse_arrival_text(raw_text)
+        return self.parse_arrival_text(cleaned_text)
 
     def parse_arrival_text(self, text):
         """
@@ -160,6 +167,12 @@ class ArrivalAutomation:
                             current_stats[matched_stat] = value
                         except ValueError:
                             continue
+                    else:
+                        # Track unmapped stats for summary
+                        if '%' in pattern:
+                            value_str += '%'
+                        unmapped_key = f"{stat_name} +{value_str}"
+                        self.unmapped_ocr_counter[unmapped_key] = self.unmapped_ocr_counter.get(unmapped_key, 0) + 1
                     break
 
         return current_stats
@@ -367,6 +380,12 @@ class ArrivalAutomation:
         if other_stats:
             self.update_status("Other Stats:")
             for stat_key, count in sorted(other_stats.items(), key=lambda x: x[1], reverse=True):
+                self.update_status(f"  • {stat_key} × {count}")
+
+        # Display unmapped stats (stats detected by OCR but not in our data)
+        if self.unmapped_ocr_counter:
+            self.update_status("🔍 Unmapped Stats (not in our data):")
+            for stat_key, count in sorted(self.unmapped_ocr_counter.items(), key=lambda x: x[1], reverse=True):
                 self.update_status(f"  • {stat_key} × {count}")
 
         # Reset counters for next run

@@ -4,7 +4,7 @@
 # Known skill options
 KNOWN_SKILLS = [
     # Offensive stats
-    "All Skill Amp.",
+    "All Skill Amp. UP",
     "Ignore Resist Skill Amp.",
     "All Attack Up.",
     "Add. Damage",
@@ -14,9 +14,9 @@ KNOWN_SKILLS = [
     "Ignore Resist Critical Rate",
     "Ignore Evasion",
     "Attack Rate",
-    "Resist Skill Amp.",
-    "Arrival Skill Duration Increase",
-    "Max Crit. Rate",
+    "Resist Skill Amp",
+    "Arrival Skill Buff Time UP",
+    "Max Critical Rate",
     "Accuracy",
     "Cancel Ignore Penetration",
     "Normal DMG Up",
@@ -42,7 +42,7 @@ KNOWN_SKILLS = [
 
 # Categorize skills
 OFFENSIVE_SKILLS = [
-    "All Skill Amp.",
+    "All Skill Amp. UP",
     "Ignore Resist Skill Amp.",
     "All Attack Up. (1)",
     "All Attack Up. (2)",
@@ -56,9 +56,9 @@ OFFENSIVE_SKILLS = [
     "Ignore Evasion",
     "Attack Rate (1)",
     "Attack Rate (2)",
-    "Resist Skill Amp.",
-    "Arrival Skill Duration Increase",
-    "Max Crit. Rate",
+    "Resist Skill Amp",
+    "Arrival Skill Buff Time UP",
+    "Max Critical Rate",
     "Accuracy",
     "Cancel Ignore Penetration",
     "Normal DMG Up",
@@ -80,7 +80,7 @@ DEFENSIVE_SKILLS = [
     "Heal (2)",
     "Ignore Accuracy",
     "Defense Rate",
-    "Resist Crit. DMG",
+    "Resist Critical Damage",
     "Evasion",
     "PvE Resist Skill Amp.",
     "PvE Resist Crit. DMG",
@@ -108,7 +108,7 @@ DISPLAY_TO_BASE = {
 # Stat variations with their possible values
 STAT_VARIATIONS = {
     # Offensive stats
-    "All Skill Amp.": ["4%", "8%", "16%"],
+    "All Skill Amp. UP": ["4%", "8%", "16%"],
     "Ignore Resist Skill Amp.": ["3%", "5%", "9%"],
     "All Attack Up. (1)": ["15", "30", "45", "60", "75"],
     "All Attack Up. (2)": ["18", "36", "54", "72", "90"],
@@ -122,9 +122,9 @@ STAT_VARIATIONS = {
     "Ignore Evasion": ["100", "200", "300", "400", "500"],
     "Attack Rate (1)": ["100", "200", "300", "400", "500"],
     "Attack Rate (2)": ["120", "240", "300", "360", "480", "600"],
-    "Resist Skill Amp.": ["8%", "15%", "30%"],
-    "Arrival Skill Duration Increase": ["2s", "4s", "8s", "15s"],
-    "Max Crit. Rate": ["1%", "2%"],
+    "Resist Skill Amp": ["8%", "15%", "30%"],
+    "Arrival Skill Buff Time UP": ["2s", "4s", "8s", "15s"],
+    "Max Critical Rate": ["1%", "2%"],
     "Accuracy": ["120", "240", "300", "360", "480", "600"],
     "Cancel Ignore Penetration": ["18", "35", "75"],
     "Normal DMG Up": ["8%", "16%", "24%", "32%", "40%"],
@@ -145,7 +145,7 @@ STAT_VARIATIONS = {
     "Heal (2)": ["300", "600", "900"],
     "Ignore Accuracy": ["80", "160", "240", "320", "400"],
     "Defense Rate": ["80", "160", "240", "320", "400"],
-    "Resist Crit. DMG": ["18%", "35%", "70%"],
+    "Resist Critical Damage": ["18%", "35%", "70%"],
     "Evasion": ["90", "180", "270", "360", "450"],
     "PvE Resist Skill Amp.": ["1%", "2%", "3%", "4%", "5%"],
     "PvE Resist Crit. DMG": ["2%", "4%", "6%", "8%", "10%"],

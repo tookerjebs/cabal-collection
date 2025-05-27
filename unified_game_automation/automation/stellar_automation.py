@@ -25,6 +25,7 @@ class StellarAutomation:
         self.option_name = ""
         self.option_min_value = ""
         self.delay_ms = 800  # Simplified - removed ping dependency
+        self.effect_delay_ms = 1000  # Default 1 second for visual effect clearing
 
     def update_status(self, message):
         """Update status via callback if available"""
@@ -38,6 +39,10 @@ class StellarAutomation:
     def set_imprint_button(self, coords):
         """Set the imprint button coordinates"""
         self.imprint_button_coords = coords
+
+    def set_effect_delay(self, delay_ms):
+        """Set the visual effect clearing delay in milliseconds"""
+        self.effect_delay_ms = delay_ms
 
     def start(self, option_name, option_min_value=""):
         """Start the stellar automation"""
@@ -106,6 +111,16 @@ class StellarAutomation:
         self.loop_in_progress = True
 
         try:
+            # Wait for visual effects to appear, then click to close them
+            time.sleep(self.effect_delay_ms / 1000.0)
+
+            # Click imprint button (which becomes "close" button) to clear visual effects
+            if not self.game_connector.click_at_position(self.imprint_button_coords):
+                self.update_status("Close button click failed")
+
+            # Small delay to let effects clear
+            time.sleep(0.2)
+
             # Capture screenshot using BitBlt
             screenshot = self.game_connector.capture_area_bitblt(self.area)
             if screenshot is None:

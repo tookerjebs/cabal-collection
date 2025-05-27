@@ -80,6 +80,29 @@ class StellarTab:
         self.entry_option_min_value.pack(side=tk.LEFT, padx=(5, 0))
         ttk.Label(value_frame, text="(leave empty to ignore)", font=("Arial", 8), foreground="gray").pack(side=tk.LEFT, padx=(5, 0))
 
+        # Visual effect delay section
+        effect_frame = ttk.LabelFrame(main_frame, text="Visual Effect Settings", padding="5")
+        effect_frame.pack(fill=tk.X, pady=(0, 10))
+
+        # Explanation text
+        explanation_text = (
+            "When rerolling, visual effects can interfere with OCR.\n"
+            "This delay waits for effects to appear, then clicks the 'close' button to clear them.\n"
+            "Adjust timing if effects last longer/shorter on your system."
+        )
+        explanation_label = ttk.Label(effect_frame, text=explanation_text, font=("Arial", 8), foreground="gray")
+        explanation_label.pack(pady=(0, 5))
+
+        # Delay setting
+        delay_frame = ttk.Frame(effect_frame)
+        delay_frame.pack(fill=tk.X, pady=2)
+
+        ttk.Label(delay_frame, text="Effect clear delay:").pack(side=tk.LEFT)
+        self.entry_effect_delay = ttk.Entry(delay_frame, width=8)
+        self.entry_effect_delay.pack(side=tk.LEFT, padx=(5, 0))
+        self.entry_effect_delay.insert(0, "1000")  # Default 1000ms = 1 second
+        ttk.Label(delay_frame, text="ms (1000ms = 1 second)", font=("Arial", 8), foreground="gray").pack(side=tk.LEFT, padx=(5, 0))
+
         # Area definition
         area_frame = ttk.Frame(main_frame)
         area_frame.pack(fill=tk.X, pady=(0, 10))
@@ -168,11 +191,23 @@ class StellarTab:
         # Get configuration
         option_name = self.combo_option_name.get().strip()
         option_min_value = self.entry_option_min_value.get().strip()
+        effect_delay = self.entry_effect_delay.get().strip()
 
         if not option_name:
             messagebox.showwarning("Missing Option", "Please select an option name.")
             self.main_window.clear_running_tool()
             return
+
+        # Validate effect delay
+        try:
+            effect_delay_ms = int(effect_delay) if effect_delay else 1000
+            if effect_delay_ms < 0:
+                effect_delay_ms = 1000
+        except ValueError:
+            effect_delay_ms = 1000
+
+        # Set the effect delay in automation
+        self.automation.set_effect_delay(effect_delay_ms)
 
         # Start automation
         if self.automation.start(option_name, option_min_value):
