@@ -3,6 +3,7 @@
 import time
 import threading
 import os
+import sys
 import cv2
 import numpy as np
 from tkinter import messagebox
@@ -58,19 +59,29 @@ class CollectionAutomation:
     def load_red_dot_template_path(self):
         """Load the path to the red dot template image"""
         try:
-            # Get the path to the red dot template
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            template_path = os.path.join(current_dir, "..", "data", "red-dot.png")
+            # Check if running as PyInstaller bundle
+            if getattr(sys, 'frozen', False):
+                # Running as executable - look for red-dot.png in the same directory as the exe
+                bundle_dir = os.path.dirname(sys.executable)
+                template_path = os.path.join(bundle_dir, "red-dot.png")
+            else:
+                # Running as script - use relative path
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                template_path = os.path.join(current_dir, "..", "data", "red-dot.png")
+            
             self.red_dot_template_path = os.path.normpath(template_path)
             
             if not os.path.exists(self.red_dot_template_path):
                 self.red_dot_template_path = None
+                print(f"Red dot template not found at: {self.red_dot_template_path}")
         except Exception as e:
             self.red_dot_template_path = None
+            print(f"Error loading red dot template: {e}")
 
     def find_red_dots_in_area(self, area, confidence=0.8):
         """Find all red dots in the specified area using OpenCV template matching"""
         if not self.red_dot_template_path or not os.path.exists(self.red_dot_template_path):
+            print(f"Red dot template not available: {self.red_dot_template_path}")
             return []
         
         try:
@@ -120,9 +131,11 @@ class CollectionAutomation:
                 if not is_duplicate:
                     filtered_positions.append(pos)
             
+            print(f"Found {len(filtered_positions)} red dots in area {area}")
             return filtered_positions
             
         except Exception as e:
+            print(f"Error in red dot detection: {e}")
             return []
 
     def click_at_screen_position(self, x, y):
@@ -288,8 +301,25 @@ class CollectionAutomation:
         try:
             self.update_status("🚀 Collection automation started")
             
+            # Validate areas are configured
+            if not self.collection_tabs_area:
+                self.update_status("❌ Collection tabs area not configured!")
+                return
+            if not self.dungeon_list_area:
+                self.update_status("❌ Dungeon list area not configured!")
+                return
+            if not self.collection_items_area:
+                self.update_status("❌ Collection items area not configured!")
+                return
+            
+            print(f"Template path: {self.red_dot_template_path}")
+            print(f"Collection tabs area: {self.collection_tabs_area}")
+            print(f"Dungeon list area: {self.dungeon_list_area}")
+            print(f"Collection items area: {self.collection_items_area}")
+            
             while self.running:
                 # Step 1: Check for red dots in collection tabs area
+                self.update_status("🔍 Scanning collection tabs for red dots...")
                 tab_red_dots = self.find_red_dots_in_area(self.collection_tabs_area)
                 
                 if not tab_red_dots:
@@ -430,7 +460,7 @@ class CollectionAutomation:
             item_dot_pos = item_red_dots[0]
             
             self.click_at_screen_position(item_dot_pos[0], item_dot_pos[1])
-            self.delay(0.1)  # Reduced item selection delay
+            self.delay(0.3)  # Wait for Auto Refill button to appear
             
             # Execute the button sequence
             if self.execute_button_sequence():
@@ -446,9 +476,9 @@ class CollectionAutomation:
         if not self.running:
             return False
         
-        # Double-click Auto Refill button for reliability
-        if self.click_action_button("auto_refill", double_click=True):
-            self.delay(0.05)  # Ultra fast timing
+        # Click Auto Refill button (single click, longer delay)
+        if self.click_action_button("auto_refill"):
+            self.delay(0.3)  # Longer delay for Auto Refill processing
         else:
             return False
         

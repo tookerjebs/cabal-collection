@@ -11,7 +11,7 @@ class MainWindow:
         """Initialize the main window"""
         self.root = tk.Tk()
         self.root.title("Collection Automation Tool")
-        self.root.geometry("600x500")
+        self.root.geometry("800x700")
         self.root.attributes("-topmost", True)
 
         # Track if automation is currently running
