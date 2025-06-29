@@ -1,31 +1,27 @@
-# Main tabbed window for the Unified Game Automation Tool
-# Title: "Stellar and Arrival Skill Automation"
+# Main window for the Collection Automation Tool
 
 import tkinter as tk
 from tkinter import ttk
 import keyboard
 from core.game_connector import GameConnector
-from core.ocr_engine import OCREngine
-from ui.stellar_tab import StellarTab
-from ui.arrival_tab import ArrivalTab
+from ui.collection_tab import CollectionTab
 
 class MainWindow:
     def __init__(self):
-        """Initialize the main tabbed window"""
+        """Initialize the main window"""
         self.root = tk.Tk()
-        self.root.title("Stellar and Arrival Skill Automation")
-        self.root.geometry("600x700")
+        self.root.title("Collection Automation Tool")
+        self.root.geometry("600x500")
         self.root.attributes("-topmost", True)
 
-        # Track which tool is currently running (mutual exclusion)
-        self.current_running_tool = None
+        # Track if automation is currently running
+        self.automation_running = False
 
         # Initialize status variable first
         self.status_var = tk.StringVar(value="Initializing...")
 
         # Shared components (after status_var is created)
         self.game_connector = GameConnector(self.update_status)
-        self.ocr_engine = OCREngine(self.update_status)
 
         # Set up emergency kill switch (ESC key)
         keyboard.add_hotkey('esc', self.emergency_stop)
@@ -37,7 +33,7 @@ class MainWindow:
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
     def create_ui(self):
-        """Create the main UI with tabs"""
+        """Create the main UI"""
         # Main frame
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.pack(fill=tk.BOTH, expand=True)
@@ -45,21 +41,8 @@ class MainWindow:
         # Auto-connect to game and show status
         self.auto_connect_to_game()
 
-        # Create notebook for tabs
-        self.notebook = ttk.Notebook(main_frame)
-        self.notebook.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
-
-        # Create tab frames
-        arrival_frame = ttk.Frame(self.notebook)
-        stellar_frame = ttk.Frame(self.notebook)
-
-        # Add tabs to notebook (Arrival Skill first)
-        self.notebook.add(arrival_frame, text="Arrival Skill")
-        self.notebook.add(stellar_frame, text="Stellar System")
-
-        # Create tab instances
-        self.arrival_tab = ArrivalTab(arrival_frame, self)
-        self.stellar_tab = StellarTab(stellar_frame, self)
+        # Create collection tab directly (no notebook needed)
+        self.collection_tab = CollectionTab(main_frame, self)
 
         # Status display
         status_display_frame = ttk.Frame(main_frame)
@@ -95,31 +78,20 @@ class MainWindow:
         self.status_var.set(message)
         print(f"Status: {message}")  # Also print to console for debugging
 
-    def set_running_tool(self, tool_name):
-        """Set which tool is currently running (mutual exclusion)"""
-        if self.current_running_tool is not None and self.current_running_tool != tool_name:
-            self.update_status(f"Cannot start {tool_name}: {self.current_running_tool} is already running")
-            return False
+    def set_automation_running(self, running):
+        """Set automation running state"""
+        self.automation_running = running
 
-        self.current_running_tool = tool_name
-        return True
-
-    def clear_running_tool(self):
-        """Clear the currently running tool"""
-        self.current_running_tool = None
+    def is_automation_running(self):
+        """Check if automation is currently running"""
+        return self.automation_running
 
     def emergency_stop(self):
         """Emergency stop triggered by ESC key"""
-        if self.current_running_tool:
-            self.update_status(f"🚨 EMERGENCY STOP - {self.current_running_tool} stopped!")
-
-            # Stop whichever tool is running
-            if self.current_running_tool == "Stellar System":
-                self.stellar_tab.emergency_stop()
-            elif self.current_running_tool == "Arrival Skill":
-                self.arrival_tab.emergency_stop()
-
-            self.clear_running_tool()
+        if self.automation_running:
+            self.update_status("🚨 EMERGENCY STOP - Collection automation stopped!")
+            self.collection_tab.emergency_stop()
+            self.set_automation_running(False)
 
             # Bring window to front
             self.root.lift()
