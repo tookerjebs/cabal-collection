@@ -2,11 +2,11 @@
 
 
 a = Analysis(
-    ['unified_game_automation/main.py'],
+    ['auto-collection/main.py'],
     pathex=[],
     binaries=[],
     datas=[
-        ('unified_game_automation/data/red-dot.png', 'unified_game_automation/data'),
+        ('auto-collection/data/red-dot.png', 'auto-collection/data'),
     ],
     hiddenimports=[
         'PIL',

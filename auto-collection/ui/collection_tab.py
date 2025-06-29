@@ -39,18 +39,6 @@ class CollectionTab:
         main_frame = ttk.Frame(self.parent_frame, padding="10")
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Instructions
-        instructions = (
-            "COLLECTION AUTO-FILL STEPS:\n"
-            "1) Define detection areas for red dots (Collection Tabs, Dungeon List, Items)\n"
-            "2) Set coordinates for action buttons (Auto Refill, Register, Yes)\n"
-            "3) Set coordinates for pagination buttons (Page 2, 3, 4, Arrow Right)\n"
-            "4) Press 'Start' - automation will scan for red dots and auto-fill collections!\n\n"
-            "The tool will detect red dots, navigate through all pages, and scroll through items automatically."
-        )
-        instruction_label = ttk.Label(main_frame, text=instructions, font=("Arial", 9))
-        instruction_label.pack(pady=(0, 10))
-
         # Red Dot Detection Areas Section
         area_frame = ttk.LabelFrame(main_frame, text="Red Dot Detection Areas", padding="5")
         area_frame.pack(fill=tk.X, pady=(0, 10))
