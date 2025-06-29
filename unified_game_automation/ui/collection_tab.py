@@ -1,7 +1,7 @@
 # Collection tab UI
 
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 import threading
 import mouse
 from data.collection_data import get_collection_buttons
@@ -231,14 +231,10 @@ class CollectionTab:
         # Connect to game if needed
         if not self.main_window.game_connector.is_connected():
             if not self.main_window.game_connector.connect_to_game():
-                messagebox.showerror("Error", "Could not connect to the game window. Make sure the game is running.")
+                self.main_window.update_status("❌ Could not connect to the game window. Make sure the game is running.")
                 return
 
-        messagebox.showinfo(
-            "Instruction",
-            f"Click on the '{button_name}' button in the game window.\n"
-            "The coordinates will be captured automatically."
-        )
+        self.main_window.update_status(f"🎯 Click on the '{button_name}' button in the game window to set coordinates...")
 
         # Change cursor to indicate click mode
         self.main_window.root.config(cursor="crosshair")
@@ -265,10 +261,10 @@ class CollectionTab:
                     self.button_coord_vars[button_key].set(f"({rel_x}, {rel_y})")
                     self.main_window.update_status(f"{button_name} button coordinates set at ({rel_x}, {rel_y})")
                 else:
-                    messagebox.showerror("Error", "Failed to convert coordinates")
+                    self.main_window.update_status("❌ Failed to convert coordinates")
 
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to capture click: {str(e)}")
+                self.main_window.update_status(f"❌ Failed to capture click: {str(e)}")
             finally:
                 # Reset cursor
                 self.main_window.root.config(cursor="")
@@ -281,14 +277,10 @@ class CollectionTab:
         # Connect to game if needed
         if not self.main_window.game_connector.is_connected():
             if not self.main_window.game_connector.connect_to_game():
-                messagebox.showerror("Error", "Could not connect to the game window. Make sure the game is running.")
+                self.main_window.update_status("❌ Could not connect to the game window. Make sure the game is running.")
                 return
 
-        messagebox.showinfo(
-            "Instruction",
-            f"Click on the '{button_name}' button in the game window.\n"
-            "The coordinates will be captured automatically."
-        )
+        self.main_window.update_status(f"🎯 Click on the '{button_name}' button in the game window to set coordinates...")
 
         # Change cursor to indicate click mode
         self.main_window.root.config(cursor="crosshair")
@@ -317,10 +309,10 @@ class CollectionTab:
                     self.button_coord_vars[button_key].set(f"({rel_x}, {rel_y})")
                     self.main_window.update_status(f"{button_name} button coordinates set at ({rel_x}, {rel_y})")
                 else:
-                    messagebox.showerror("Error", "Failed to convert coordinates")
+                    self.main_window.update_status("❌ Failed to convert coordinates")
 
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to capture click: {str(e)}")
+                self.main_window.update_status(f"❌ Failed to capture click: {str(e)}")
             finally:
                 # Reset cursor
                 self.main_window.root.config(cursor="")
@@ -346,7 +338,7 @@ class CollectionTab:
         """Start the collection automation"""
         # Check if automation is already running
         if self.main_window.is_automation_running():
-            messagebox.showwarning("Already Running", "Collection automation is already running!")
+            self.main_window.update_status("⚠️ Collection automation is already running!")
             return
 
         # Start automation

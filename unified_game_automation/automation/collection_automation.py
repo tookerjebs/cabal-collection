@@ -6,7 +6,7 @@ import os
 import sys
 import cv2
 import numpy as np
-from tkinter import messagebox
+
 from data.collection_data import get_collection_tabs
 from pywinauto import mouse
 
@@ -73,15 +73,12 @@ class CollectionAutomation:
             
             if not os.path.exists(self.red_dot_template_path):
                 self.red_dot_template_path = None
-                print(f"Red dot template not found at: {self.red_dot_template_path}")
         except Exception as e:
             self.red_dot_template_path = None
-            print(f"Error loading red dot template: {e}")
 
     def find_red_dots_in_area(self, area, confidence=0.8):
         """Find all red dots in the specified area using OpenCV template matching"""
         if not self.red_dot_template_path or not os.path.exists(self.red_dot_template_path):
-            print(f"Red dot template not available: {self.red_dot_template_path}")
             return []
         
         try:
@@ -131,11 +128,9 @@ class CollectionAutomation:
                 if not is_duplicate:
                     filtered_positions.append(pos)
             
-            print(f"Found {len(filtered_positions)} red dots in area {area}")
             return filtered_positions
             
         except Exception as e:
-            print(f"Error in red dot detection: {e}")
             return []
 
     def click_at_screen_position(self, x, y):
@@ -283,12 +278,11 @@ class CollectionAutomation:
             missing_items.append("Arrow Right button")
             
         if missing_items:
-            messagebox.showerror("Missing Setup", 
-                               f"Please set: {', '.join(missing_items)}")
-            return
+            self.update_status(f"❌ Missing setup: {', '.join(missing_items)}")
+            return False
 
         if not self.game_connector.is_connected():
-            messagebox.showerror("Error", "Not connected to game window")
+            self.update_status("❌ Not connected to game window")
             return False
 
         # Start automation in separate thread
@@ -312,10 +306,7 @@ class CollectionAutomation:
                 self.update_status("❌ Collection items area not configured!")
                 return
             
-            print(f"Template path: {self.red_dot_template_path}")
-            print(f"Collection tabs area: {self.collection_tabs_area}")
-            print(f"Dungeon list area: {self.dungeon_list_area}")
-            print(f"Collection items area: {self.collection_items_area}")
+
             
             while self.running:
                 # Step 1: Check for red dots in collection tabs area
@@ -460,10 +451,10 @@ class CollectionAutomation:
             item_dot_pos = item_red_dots[0]
             
             self.click_at_screen_position(item_dot_pos[0], item_dot_pos[1])
-            self.delay(0.3)  # Wait for Auto Refill button to appear
+            self.delay(0.1)  # Reduced item selection delay
             
-            # Execute the button sequence
-            if self.execute_button_sequence():
+            # Execute the button sequence with retry logic
+            if self.execute_button_sequence_with_item_retry(item_dot_pos):
                 items_processed = True
             
             # Very minimal delay before re-scanning for more items
@@ -472,28 +463,64 @@ class CollectionAutomation:
         return items_processed
 
     def execute_button_sequence(self):
-        """Execute the button sequence: Auto Refill -> Register -> Yes (optimized for speed)"""
+        """Execute the button sequence: Auto Refill -> Register -> Yes with retry logic for problematic items"""
         if not self.running:
             return False
         
-        # Click Auto Refill button (single click, longer delay)
-        if self.click_action_button("auto_refill"):
-            self.delay(0.3)  # Longer delay for Auto Refill processing
-        else:
+        # Try Auto Refill with retry logic for stubborn items
+        auto_refill_success = False
+        for attempt in range(3):  # Try up to 3 times
+            if self.click_action_button("auto_refill", double_click=True):
+                self.delay(0.1)  # Slightly longer delay to let it process
+                auto_refill_success = True
+                break
+            else:
+                self.delay(0.1)
+        
+        if not auto_refill_success:
             return False
         
-        # Double-click Register button for reliability
-        if self.click_action_button("register", double_click=True):
-            self.delay(0.05)  # Ultra fast timing
-        else:
+        # Try Register button - this is where we'll detect the "no item to register" issue
+        register_success = False
+        for attempt in range(2):  # Try up to 2 times
+            if self.click_action_button("register", double_click=True):
+                self.delay(0.1)
+                register_success = True
+                break
+            else:
+                # If register fails, try Auto Refill again
+                self.click_action_button("auto_refill", double_click=True)
+                self.delay(0.15)
+        
+        if not register_success:
             return False
         
-        # Double-click Yes button for reliability
+        # Click Yes button
         if self.click_action_button("yes", double_click=True):
-            self.delay(0.15)  # Reduced wait for processing
+            self.delay(0.15)  # Wait for processing
             return True
         else:
             return False
+
+    def execute_button_sequence_with_item_retry(self, item_position):
+        """Execute button sequence with ability to re-click the item if Auto Refill fails"""
+        # First attempt with normal sequence
+        if self.execute_button_sequence():
+            return True
+        
+        print("🔄 First attempt failed, trying to re-click item and retry...")
+        
+        # Re-click the item (maybe it wasn't properly selected)
+        self.click_at_screen_position(item_position[0], item_position[1])
+        self.delay(0.15)  # Slightly longer delay
+        
+        # Try the sequence again
+        if self.execute_button_sequence():
+            print("✅ Retry successful after re-clicking item")
+            return True
+        
+        print("❌ Item failed even after retry - skipping this item")
+        return False
 
     def stop(self):
         """Stop the automation"""

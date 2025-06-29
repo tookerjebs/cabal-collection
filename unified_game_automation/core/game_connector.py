@@ -1,5 +1,4 @@
-# Unified game connector with BitBlt capture
-# Combines functionality from main.py GameConnector and arrival_skill_ocr/game_connector.py
+# Unified game connector with BitBlt capture functionality
 
 from pywinauto import Application
 import win32gui

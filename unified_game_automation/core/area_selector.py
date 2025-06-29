@@ -2,7 +2,7 @@
 # Ported from main.py area selection logic
 
 import tkinter as tk
-from tkinter import messagebox
+
 
 class OverlayWindow(tk.Toplevel):
     """Red overlay window to show selected area"""
@@ -44,12 +44,7 @@ class AreaSelector:
                 self.overlay_window.close_overlay()
                 self.overlay_window = None
 
-            # Show instruction first
-            messagebox.showinfo(
-                "Area Selection",
-                "Click and drag to select the OCR area.\n"
-                "Press ESC to cancel."
-            )
+            # No instruction message needed - user knows what to do
 
             # Create fullscreen overlay for selection
             overlay = tk.Toplevel(self.root)
@@ -95,7 +90,7 @@ class AreaSelector:
 
                     # Validate area dimensions
                     if width <= 0 or height <= 0:
-                        messagebox.showerror("Error", "Invalid area selection (width or height <= 0).")
+                        print("Invalid area selection (width or height <= 0).")
                         overlay.destroy()
                         return
 
@@ -115,11 +110,11 @@ class AreaSelector:
                     # Auto-remove the red overlay after 2 seconds
                     self.root.after(2000, self.clear_overlay)
 
-                    messagebox.showinfo("Success", f"Area defined: ({left}, {top}, {width}, {height})")
+                    print(f"Area defined: ({left}, {top}, {width}, {height})")
 
                 except Exception as e:
                     print(f"Error in on_release: {e}")
-                    messagebox.showerror("Error", f"Failed to define area: {str(e)}")
+                    print(f"Failed to define area: {str(e)}")
                     try:
                         overlay.destroy()
                     except:
@@ -139,7 +134,7 @@ class AreaSelector:
 
         except Exception as e:
             print(f"Error in select_area: {e}")
-            messagebox.showerror("Error", f"Failed to start area selection: {str(e)}")
+            print(f"Failed to start area selection: {str(e)}")
 
     def clear_overlay(self):
         """Clear the red overlay window"""
