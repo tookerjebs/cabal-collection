@@ -6,7 +6,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        ('unified_game_automation/Tesseract', 'Tesseract'),
+        ('unified_game_automation/data/red-dot.png', 'unified_game_automation/data'),
     ],
     hiddenimports=[
         'PIL',
@@ -18,7 +18,9 @@ a = Analysis(
         'win32ui',
         'threading',
         'tkinter.ttk',
-        'pytesseract'
+        'cv2',
+        'numpy',
+        'pyautogui'
     ],
     hookspath=[],
     hooksconfig={},
@@ -35,7 +37,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='Stellar_and_Arrival_Automation',
+    name='Cabal_Collection_Automation',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

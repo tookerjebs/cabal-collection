@@ -1,63 +1,77 @@
-# Stellar and Arrival Skill Automation
+# Cabal Collection Automation
 
-Automated OCR tool for stellar system and arrival skill rerolling.
+An automated collection system for the Cabal game that uses computer vision to detect and collect items with red dot indicators.
 
 ## Features
 
-- **Arrival Skill Automation** - Dual stat detection and rerolling
-- **Stellar System Automation** - Single stat detection and rerolling
-- **BitBlt Screen Capture** - Works with background windows
-- **Tesseract OCR** - Fast and accurate text recognition
-- **Direct Window Clicking** - No mouse movement required
-- **Emergency Stop** - ESC key stops automation instantly
+- **Red Dot Detection**: Uses OpenCV template matching to find red dots indicating collectible items
+- **Automated Collection**: Systematically processes collection tabs, dungeons, and items
+- **Smart Navigation**: Handles pagination and tab switching automatically
+- **Speed Control**: Adjustable delay multipliers for different automation speeds
+- **Area-based Detection**: Configurable detection areas for different UI sections
 
-## Usage
+## Components
 
-1. **Run the tool** - Start `Stellar_and_Arrival_Automation.exe` always RUN as ADMIN
-2. **Select tab** - Choose "Arrival Skill" or "Stellar System"
-3. **Set coordinates** - Click buttons to set Apply/Change/Imprint positions
-4. **Define area** - Drag to select OCR detection area
-5. **Configure stats** - Select desired stats and minimum values
-6. **Start automation** - Click Start button
+### Core Automation
+- `unified_game_automation/automation/collection_automation.py` - Main automation logic
+- `unified_game_automation/core/game_connector.py` - Game window interaction
+- `unified_game_automation/data/collection_data.py` - Collection configuration data
+
+### User Interface
+- `unified_game_automation/ui/main_window.py` - Main application window
+- `unified_game_automation/ui/collection_tab.py` - Collection automation controls
+
+### Detection Assets
+- `unified_game_automation/data/red-dot.png` - Template image for red dot detection
+
+## How It Works
+
+1. **Setup Phase**: Configure detection areas and button coordinates through the UI
+2. **Detection Phase**: Scan collection tabs for red dots indicating available collections
+3. **Navigation Phase**: Click on tabs with red dots and navigate through dungeon lists
+4. **Collection Phase**: Process items in each dungeon/area with red dots
+5. **Pagination**: Automatically handle multiple pages of content
 
 ## Requirements
 
-- Game running in windowed mode
-- Tesseract OCR (included)
-- Windows 10/11
-- use default font in game Tahoma
-- Do not make the UI in game too small or else OCR becomes inaccurate, default setting is fine, or slightly smaller (10-20%)
+See `requirements_minimal.txt` for Python dependencies:
+- OpenCV for computer vision
+- PyWinAuto for Windows automation
+- Tkinter for GUI
+- NumPy for image processing
+- Pillow for image handling
 
-## How to Build
+## Installation
 
-**Step 1: Create virtual environment**
-```bash
-python -m venv venv
-```
+1. Clone this repository
+2. Install dependencies: `pip install -r requirements_minimal.txt`
+3. Run the application: `python unified_game_automation/ui/main_window.py`
 
-**Step 2: Activate virtual environment**
-```bash
-venv\Scripts\activate.bat
-```
+## Usage
 
-**Step 3: Install dependencies**
-```bash
-pip install -r requirements_minimal.txt
-```
+1. Launch the application
+2. Connect to the Cabal game window
+3. Configure detection areas using the calibration tools
+4. Set button coordinates for automation actions
+5. Start the collection automation
 
-**Step 4: Build executable**
-```bash
-pyinstaller main.spec
-```
+## Configuration
 
-**Step 5: Find your executable**
-The built executable will be in the `dist` folder:
-```
-dist\Stellar_and_Arrival_Automation.exe
-```
+The automation requires setup of:
+- Collection tabs area (where tab red dots appear)
+- Dungeon list area (where dungeon red dots appear)  
+- Collection items area (where item red dots appear)
+- Action button coordinates (Auto Refill, Register, Yes)
+- Pagination button coordinates (Page 2, 3, 4, Arrow Right)
 
-## Known Issues
-certain stats with long names like "Arrival Skill Cool Time decreased." collides with the stat value in game.
-Currently arrival skill cool time and arrival skill duration will trigger a success message with any stat value. you cant set any specific value for it. Possible fix: You reduce the UI size in game settings to minimum, however this will also reduce the OCR accuracy and requires the special case handling to be improved.
+## Safety Features
 
+- Validation checks before starting automation
+- Status updates during operation
+- Emergency stop functionality
+- Speed control to prevent detection issues
 
+## License
+
+This project is for educational and personal use only.
+ 
