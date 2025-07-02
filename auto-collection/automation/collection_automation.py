@@ -81,7 +81,7 @@ class CollectionAutomation:
             self.red_dot_template_path = None
             self.red_dot_template = None
 
-    def find_red_dots_in_area(self, area, confidence=0.7):
+    def find_red_dots_in_area(self, area, confidence=0.9):
         """Find all red dots in the specified area using OpenCV template matching"""
         if not self.red_dot_template_path or self.red_dot_template is None:
             return []
