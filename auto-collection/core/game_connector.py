@@ -4,6 +4,7 @@ from pywinauto import Application
 import win32gui
 import win32con
 import win32ui
+import win32api
 from ctypes import windll
 from PIL import Image
 
@@ -52,22 +53,56 @@ class GameConnector:
             self.update_status(f"Could not connect to the game. Make sure it's running. Error: {str(e)}")
             return False
 
-    def click_at_position(self, coords, adjust_for_client_area=True):
+    def click_at_position(self, coords, adjust_for_client_area=True, use_fast_click=True):
         """Click at the specified coordinates in the game window"""
         if not self.game_window:
             return False
         try:
+            if use_fast_click:
+                return self.fast_click_at_position(coords, adjust_for_client_area)
+            else:
+                # Fallback to pywinauto method
+                if adjust_for_client_area:
+                    offset = self.get_window_client_offset()
+                    if offset:
+                        adjusted_coords = (coords[0] - offset[0], coords[1] - offset[1])
+                        self.game_window.click(coords=adjusted_coords)
+                        return True
+
+                self.game_window.click(coords=coords)
+                return True
+        except Exception as e:
+            self.update_status(f"Click failed: {str(e)}")
+            return False
+
+    def fast_click_at_position(self, coords, adjust_for_client_area=True):
+        """Fast click using Windows API directly - no built-in delays"""
+        if not self.game_window:
+            return False
+        try:
+            hwnd = self.game_window.handle
+            
+            # Calculate the actual click coordinates
             if adjust_for_client_area:
                 offset = self.get_window_client_offset()
                 if offset:
-                    adjusted_coords = (coords[0] - offset[0], coords[1] - offset[1])
-                    self.game_window.click(coords=adjusted_coords)
-                    return True
-
-            self.game_window.click(coords=coords)
+                    click_x = coords[0] - offset[0]
+                    click_y = coords[1] - offset[1]
+                else:
+                    click_x, click_y = coords
+            else:
+                click_x, click_y = coords
+            
+            # Create the lParam for the click coordinates
+            lParam = win32api.MAKELONG(click_x, click_y)
+            
+            # Send mouse down and up messages directly - much faster than pywinauto
+            win32gui.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, lParam)
+            win32gui.SendMessage(hwnd, win32con.WM_LBUTTONUP, 0, lParam)
+            
             return True
         except Exception as e:
-            self.update_status(f"Click failed: {str(e)}")
+            self.update_status(f"Fast click failed: {str(e)}")
             return False
 
     def get_window_rect(self):

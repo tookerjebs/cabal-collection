@@ -7,7 +7,6 @@ import sys
 import cv2
 import numpy as np
 
-from data.collection_data import get_collection_tabs
 from pywinauto import mouse
 
 class CollectionAutomation:
@@ -20,7 +19,7 @@ class CollectionAutomation:
         self.running = False
         
         # Speed settings
-        self.delay_multiplier = 1.0  # Default normal speed
+        self.delay_ms = 1000  # Default 1000ms (1 second)
         
         # Action button coordinates for calibration
         self.auto_refill_coords = None
@@ -38,8 +37,9 @@ class CollectionAutomation:
         self.dungeon_list_area = None     # Area containing the dungeon/world/special/boss list entries
         self.collection_items_area = None # Area containing the collection items/materials panel
         
-        # Red dot template path
+        # Red dot template path and cached template
         self.red_dot_template_path = None
+        self.red_dot_template = None
         self.load_red_dot_template_path()
 
     def update_status(self, message):
@@ -47,14 +47,15 @@ class CollectionAutomation:
         if self.status_callback:
             self.status_callback(message)
 
-    def set_delay_multiplier(self, multiplier):
-        """Set the delay multiplier for speed control"""
-        self.delay_multiplier = max(0.0, multiplier)  # Ensure non-negative
+    def set_delay_ms(self, delay_ms):
+        """Set the delay in milliseconds"""
+        self.delay_ms = max(0, delay_ms)  # Ensure non-negative
 
-    def delay(self, base_time):
-        """Apply delay with multiplier (0 = no delay)"""
-        if self.delay_multiplier > 0:
-            time.sleep(base_time * self.delay_multiplier)
+    def delay(self, custom_ms=None):
+        """Apply delay (0 = no delay)"""
+        delay_to_use = custom_ms if custom_ms is not None else self.delay_ms
+        if delay_to_use > 0:
+            time.sleep(delay_to_use / 1000.0)  # Convert ms to seconds
 
     def load_red_dot_template_path(self):
         """Load the path to the red dot template image"""
@@ -73,12 +74,16 @@ class CollectionAutomation:
             
             if not os.path.exists(self.red_dot_template_path):
                 self.red_dot_template_path = None
+            else:
+                # Load and cache the template
+                self.red_dot_template = cv2.imread(self.red_dot_template_path, cv2.IMREAD_COLOR)
         except Exception as e:
             self.red_dot_template_path = None
+            self.red_dot_template = None
 
-    def find_red_dots_in_area(self, area, confidence=0.8):
+    def find_red_dots_in_area(self, area, confidence=0.7):
         """Find all red dots in the specified area using OpenCV template matching"""
-        if not self.red_dot_template_path or not os.path.exists(self.red_dot_template_path):
+        if not self.red_dot_template_path or self.red_dot_template is None:
             return []
         
         try:
@@ -93,10 +98,8 @@ class CollectionAutomation:
             # Convert PIL image to OpenCV format
             screenshot_cv = cv2.cvtColor(np.array(screenshot_pil), cv2.COLOR_RGB2BGR)
             
-            # Load the red dot template
-            template = cv2.imread(self.red_dot_template_path, cv2.IMREAD_COLOR)
-            if template is None:
-                return []
+            # Use cached template
+            template = self.red_dot_template
             
             # Perform template matching
             result = cv2.matchTemplate(screenshot_cv, template, cv2.TM_CCOEFF_NORMED)
@@ -115,14 +118,18 @@ class CollectionAutomation:
                 red_dot_positions.append((center_x, center_y))
             
             # Remove duplicate detections (if multiple detections are very close)
-            filtered_positions = []
-            min_distance = 10  # Minimum distance between detections
+            if not red_dot_positions:
+                return []
             
-            for pos in red_dot_positions:
+            # Simple duplicate removal - just return first few unique positions
+            filtered_positions = [red_dot_positions[0]]  # Always include first
+            min_distance_sq = 100  # 10^2 for faster comparison (avoid sqrt)
+            
+            for pos in red_dot_positions[1:]:
                 is_duplicate = False
                 for existing_pos in filtered_positions:
-                    distance = ((pos[0] - existing_pos[0])**2 + (pos[1] - existing_pos[1])**2)**0.5
-                    if distance < min_distance:
+                    distance_sq = (pos[0] - existing_pos[0])**2 + (pos[1] - existing_pos[1])**2
+                    if distance_sq < min_distance_sq:
                         is_duplicate = True
                         break
                 if not is_duplicate:
@@ -199,9 +206,10 @@ class CollectionAutomation:
         if coords and self.game_connector.is_connected():
             self.game_connector.click_at_position(coords)
             if double_click:
-                self.delay(0.1)  # Very short delay between double clicks
+                if self.delay_ms > 0:
+                    self.delay()  # Delay between double clicks only if delay is set
                 self.game_connector.click_at_position(coords)
-            self.delay(0.2)  # Base delay
+            self.delay()  # Base delay
             return True
         return False
 
@@ -219,7 +227,7 @@ class CollectionAutomation:
         
         if coords and self.game_connector.is_connected():
             self.game_connector.click_at_position(coords)
-            self.delay(0.3)  # Page loading delay
+            self.delay()  # Page loading delay
             return True
         return False
 
@@ -243,7 +251,7 @@ class CollectionAutomation:
                 # Perform more powerful mouse scroll
                 wheel_dist = -scroll_amount if direction == "down" else scroll_amount
                 mouse.scroll(coords=(screen_x, screen_y), wheel_dist=wheel_dist)
-                self.delay(0.3)  # Wait for scroll to complete
+                self.delay()  # Wait for scroll to complete
                 return True
                 
         except Exception as e:
@@ -293,7 +301,7 @@ class CollectionAutomation:
     def _automation_loop(self):
         """Main automation loop - systematic workflow"""
         try:
-            self.update_status("🚀 Collection automation started")
+            self.update_status("Automation started")
             
             # Validate areas are configured
             if not self.collection_tabs_area:
@@ -306,34 +314,33 @@ class CollectionAutomation:
                 self.update_status("❌ Collection items area not configured!")
                 return
             
-
-            
             while self.running:
                 # Step 1: Check for red dots in collection tabs area
-                self.update_status("🔍 Scanning collection tabs for red dots...")
+                if self.delay_ms > 0:  # Only show status updates if delay is set
+                    self.update_status("🔍 Scanning collection tabs for red dots...")
                 tab_red_dots = self.find_red_dots_in_area(self.collection_tabs_area)
                 
                 if not tab_red_dots:
-                    self.update_status("✅ All collections complete!")
+                    self.update_status("✓ All collections complete!")
                     break
                 
                 # Process the first red dot found (most efficient)
                 tab_dot_pos = tab_red_dots[0]
                 
                 self.click_at_screen_position(tab_dot_pos[0], tab_dot_pos[1])
-                self.delay(0.6)  # Wait for tab to load
+                self.delay()  # Wait for tab to load
                 
                 # Step 2: Process dungeon list in this tab, passing the original tab position
                 self.process_dungeon_list(tab_dot_pos)
                 
                 # Small delay before checking tabs again
-                self.delay(0.3)
+                self.delay()
                 
         except Exception as e:
             self.update_status(f"❌ Automation error: {str(e)}")
         finally:
             self.running = False
-            self.update_status("⏹️ Collection automation stopped")
+            self.update_status("Automation stopped")
 
     def process_dungeon_list(self, original_tab_position):
         """Process all dungeons/entries with red dots in the current tab - simplified logic"""
@@ -379,14 +386,14 @@ class CollectionAutomation:
             dungeon_dot_pos = dungeon_red_dots[0]
             
             self.click_at_screen_position(dungeon_dot_pos[0], dungeon_dot_pos[1])
-            self.delay(0.4)  # Wait for items to load
+            self.delay()  # Wait for items to load
             
             # Process collection items for this dungeon
             if self.process_collection_items():
                 items_processed = True
             
             # Small delay before checking the page again
-            self.delay(0.3)
+            self.delay()
                 
         return items_processed
 
@@ -410,10 +417,10 @@ class CollectionAutomation:
         
         # First, scroll to top to ensure we start from the beginning
         self.scroll_in_item_area(direction="up", scroll_amount=20)  # Strong scroll to top
-        self.delay(0.2)  # Reduced delay
+        self.delay()  # Wait for scroll
         
         # Use a more efficient approach: fewer, larger scrolls
-        scroll_positions = 4  # Check 4 positions to cover the full area
+        scroll_positions = 3 if self.delay_ms == 0 else 4  # Fewer positions when delay is 0
         
         for position in range(scroll_positions):
             if not self.running:
@@ -427,14 +434,14 @@ class CollectionAutomation:
             # Scroll down for next position (except on last position)
             if position < scroll_positions - 1:
                 self.scroll_in_item_area(direction="down", scroll_amount=8)  # Larger scroll steps
-                self.delay(0.15)  # Minimal delay for scroll to settle
+                self.delay()  # Wait for scroll to settle
                 
         return items_processed
 
     def process_all_items_at_current_position(self):
         """Process items with red dots at the current scroll position - optimized for speed"""
         items_processed = False
-        max_iterations = 10  # Prevent infinite loops
+        max_iterations = 5 if self.delay_ms == 0 else 10  # Fewer iterations when delay is 0
         iteration = 0
         
         # Keep processing until no more red dots are found at this position
@@ -451,14 +458,14 @@ class CollectionAutomation:
             item_dot_pos = item_red_dots[0]
             
             self.click_at_screen_position(item_dot_pos[0], item_dot_pos[1])
-            self.delay(0.1)  # Reduced item selection delay
+            self.delay()  # Item selection delay
             
             # Execute the button sequence with retry logic
             if self.execute_button_sequence_with_item_retry(item_dot_pos):
                 items_processed = True
             
-            # Very minimal delay before re-scanning for more items
-            self.delay(0.05)  # Ultra minimal delay for efficiency
+            # Minimal delay before re-scanning for more items
+            self.delay()  # Delay for efficiency
                 
         return items_processed
 
@@ -469,35 +476,34 @@ class CollectionAutomation:
         
         # Try Auto Refill with retry logic for stubborn items
         auto_refill_success = False
-        for attempt in range(3):  # Try up to 3 times
+        max_attempts = 1 if self.delay_ms == 0 else 3  # Fewer retries when delay is 0
+        for attempt in range(max_attempts):
             if self.click_action_button("auto_refill", double_click=True):
-                self.delay(0.1)  # Slightly longer delay to let it process
                 auto_refill_success = True
                 break
             else:
-                self.delay(0.1)
+                self.delay()
         
         if not auto_refill_success:
             return False
         
         # Try Register button - this is where we'll detect the "no item to register" issue
         register_success = False
-        for attempt in range(2):  # Try up to 2 times
+        max_register_attempts = 1 if self.delay_ms == 0 else 2  # Fewer retries when delay is 0
+        for attempt in range(max_register_attempts):
             if self.click_action_button("register", double_click=True):
-                self.delay(0.1)
                 register_success = True
                 break
             else:
                 # If register fails, try Auto Refill again
                 self.click_action_button("auto_refill", double_click=True)
-                self.delay(0.15)
+                self.delay()
         
         if not register_success:
             return False
         
         # Click Yes button
         if self.click_action_button("yes", double_click=True):
-            self.delay(0.15)  # Wait for processing
             return True
         else:
             return False
@@ -508,18 +514,13 @@ class CollectionAutomation:
         if self.execute_button_sequence():
             return True
         
-        print("🔄 First attempt failed, trying to re-click item and retry...")
-        
         # Re-click the item (maybe it wasn't properly selected)
         self.click_at_screen_position(item_position[0], item_position[1])
-        self.delay(0.15)  # Slightly longer delay
+        self.delay()  # Wait for item selection
         
         # Try the sequence again
         if self.execute_button_sequence():
-            print("✅ Retry successful after re-clicking item")
             return True
-        
-        print("❌ Item failed even after retry - skipping this item")
         return False
 
     def stop(self):

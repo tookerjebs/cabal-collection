@@ -16,11 +16,11 @@ a = Analysis(
         'win32gui',
         'win32con',
         'win32ui',
+        'win32api',
         'threading',
         'tkinter.ttk',
         'cv2',
-        'numpy',
-        'pyautogui'
+        'numpy'
     ],
     hookspath=[],
     hooksconfig={},

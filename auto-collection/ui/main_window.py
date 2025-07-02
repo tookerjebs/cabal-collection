@@ -11,7 +11,7 @@ class MainWindow:
         """Initialize the main window"""
         self.root = tk.Tk()
         self.root.title("Collection Automation Tool")
-        self.root.geometry("800x700")
+        self.root.geometry("400x650")
         self.root.attributes("-topmost", True)
 
         # Track if automation is currently running
@@ -56,7 +56,7 @@ class MainWindow:
         # Emergency stop info
         emergency_frame = ttk.Frame(main_frame)
         emergency_frame.pack(fill=tk.X, pady=(5, 0))
-        emergency_label = ttk.Label(emergency_frame, text="🚨 Emergency Stop: Press ESC key anytime",
+        emergency_label = ttk.Label(emergency_frame, text="ESC = Emergency Stop",
                                    foreground="red", font=("Arial", 9, "bold"))
         emergency_label.pack(anchor=tk.W)
 
@@ -76,7 +76,6 @@ class MainWindow:
     def update_status(self, message):
         """Update the status display"""
         self.status_var.set(message)
-        print(f"Status: {message}")  # Also print to console for debugging
 
     def set_automation_running(self, running):
         """Set automation running state"""
@@ -89,7 +88,7 @@ class MainWindow:
     def emergency_stop(self):
         """Emergency stop triggered by ESC key"""
         if self.automation_running:
-            self.update_status("🚨 EMERGENCY STOP - Collection automation stopped!")
+            self.update_status("EMERGENCY STOP - Automation stopped!")
             self.collection_tab.emergency_stop()
             self.set_automation_running(False)
 

@@ -1,6 +1,6 @@
 # Cabal Collection Automation
 
-Automated collection system for Cabal game using computer vision to detect and collect items with red dot indicators.
+Fast automated collection system for Cabal game using computer vision to detect and collect items with red dot indicators. Optimized for speed with configurable delays and efficient clicking.
 
 ## Quick Setup & Usage
 
@@ -33,9 +33,10 @@ python auto-collection/main.py
    - Pagination: Page 2, Page 3, Page 4, Arrow Right
 
 ### Step 3: Run Automation
-1. Click **"Start Collection"**
-2. Press **ESC** or click **"Stop"** to halt anytime
-3. Adjust speed multiplier if needed (1.0x recommended)
+1. **Set Delay**: Adjust delay in milliseconds (0 = fastest, 1000 = 1 second between actions)
+2. Click **"Start Collection"**
+3. Press **ESC** anytime for emergency stop
+4. The tool will automatically process all collections with red dots
 
 ## How to Build Executable
 
@@ -61,9 +62,23 @@ pyinstaller main.spec
 - Use default game UI size
 - Verify game is in windowed mode
 
+## Performance Tips
+- **For maximum speed**: Set delay to 0ms
+- **For stability**: Use 100-500ms delay
+- **For slow systems**: Use 1000ms+ delay
+- The tool automatically reduces retries when delay is set to 0 for optimal performance
+
+## Features
+- **Ultra-fast clicking** using Windows API (no built-in delays)
+- **Configurable speed** from 0ms (instant) to any delay you prefer
+- **Smart detection** with cached templates for better performance
+- **Emergency stop** with ESC key
+- **Automatic pagination** through multiple collection pages
+- **Optimized UI** with compact design
+
 ## Requirements
 - Python 3.8+
-- OpenCV, PyWinAuto, Tkinter, NumPy, Pillow (see `requirements_minimal.txt`)
+- OpenCV, PyWinAuto, Tkinter, NumPy, Pillow, Keyboard, Mouse (see `requirements_minimal.txt`)
 
 ## License
 Educational and personal use only.

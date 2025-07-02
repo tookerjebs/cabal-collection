@@ -1,0 +1,56 @@
+{
+  "areas": {
+    "collection_tabs": [
+      378,
+      208,
+      654,
+      36
+    ],
+    "dungeon_list": [
+      388,
+      251,
+      237,
+      604
+    ],
+    "collection_items": [
+      640,
+      294,
+      861,
+      539
+    ]
+  },
+  "buttons": {
+    "auto_refill": [
+      1202,
+      504
+    ],
+    "register": [
+      1073,
+      772
+    ],
+    "yes": [
+      950,
+      633
+    ],
+    "page_2": [
+      502,
+      873
+    ],
+    "page_3": [
+      531,
+      875
+    ],
+    "page_4": [
+      563,
+      875
+    ],
+    "arrow_right": [
+      595,
+      874
+    ]
+  },
+  "speed": {
+    "delay_multiplier": 0.5,
+    "delay_ms": 20
+  }
+}

@@ -6,12 +6,16 @@ import threading
 import mouse
 from data.collection_data import get_collection_buttons
 from automation.collection_automation import CollectionAutomation
+from core.settings_manager import SettingsManager
 
 class CollectionTab:
     def __init__(self, parent_frame, main_window):
         """Initialize the Collection tab"""
         self.parent_frame = parent_frame
         self.main_window = main_window
+
+        # Settings manager for persistence
+        self.settings = SettingsManager()
 
         # Automation components
         self.automation = CollectionAutomation(
@@ -21,17 +25,13 @@ class CollectionTab:
 
         # UI state variables
         self.button_coord_vars = {}
-        self.areas_defined = {
-            'collection_tabs': False,
-            'dungeon_list': False,
-            'collection_items': False
-        }
+        self.area_status_vars = {}
         
         # Create UI
         self.create_ui()
         
-        # Set default delay multiplier
-        self.automation.set_delay_multiplier(1.0)
+        # Load saved settings
+        self.load_saved_settings()
 
     def create_ui(self):
         """Create the collection UI"""
@@ -39,135 +39,166 @@ class CollectionTab:
         main_frame = ttk.Frame(self.parent_frame, padding="10")
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Red Dot Detection Areas Section
-        area_frame = ttk.LabelFrame(main_frame, text="Red Dot Detection Areas", padding="5")
+        # Setup status section
+        status_frame = ttk.LabelFrame(main_frame, text="Setup Status", padding="5")
+        status_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        self.setup_status_label = ttk.Label(status_frame, text="⚠ Setup incomplete", 
+                                           foreground="orange", font=("Arial", 10, "bold"))
+        self.setup_status_label.pack()
+
+        # Areas Section
+        area_frame = ttk.LabelFrame(main_frame, text="Detection Areas", padding="5")
         area_frame.pack(fill=tk.X, pady=(0, 10))
 
-        # Collection tabs area
-        tabs_area_frame = ttk.Frame(area_frame)
-        tabs_area_frame.pack(fill=tk.X, pady=2)
-        ttk.Button(tabs_area_frame, text="Define Collection Tabs Area", 
-                  command=self.define_collection_tabs_area).pack(side=tk.LEFT)
-        ttk.Label(tabs_area_frame, text="Area containing Dungeon, World, Special, Boss tabs", 
-                 font=("Arial", 8)).pack(side=tk.LEFT, padx=(10, 0))
-        self.tabs_area_status = ttk.Label(tabs_area_frame, text="❌ Not defined", foreground="red")
-        self.tabs_area_status.pack(side=tk.RIGHT)
+        areas = [
+            ("collection_tabs", "Collection Tabs"),
+            ("dungeon_list", "Dungeon List"),
+            ("collection_items", "Collection Items")
+        ]
 
-        # Dungeon list area
-        dungeon_area_frame = ttk.Frame(area_frame)
-        dungeon_area_frame.pack(fill=tk.X, pady=2)
-        ttk.Button(dungeon_area_frame, text="Define Dungeon List Area", 
-                  command=self.define_dungeon_list_area).pack(side=tk.LEFT)
-        ttk.Label(dungeon_area_frame, text="Area containing dungeon/world/special/boss entries", 
-                 font=("Arial", 8)).pack(side=tk.LEFT, padx=(10, 0))
-        self.dungeon_area_status = ttk.Label(dungeon_area_frame, text="❌ Not defined", foreground="red")
-        self.dungeon_area_status.pack(side=tk.RIGHT)
+        for area_key, area_name in areas:
+            frame = ttk.Frame(area_frame)
+            frame.pack(fill=tk.X, pady=1)
+            
+            ttk.Button(frame, text=f"Set {area_name}", 
+                      command=lambda k=area_key: self.define_area(k)).pack(side=tk.LEFT)
+            
+            status_label = ttk.Label(frame, text="❌", foreground="red")
+            status_label.pack(side=tk.RIGHT)
+            self.area_status_vars[area_key] = status_label
 
-        # Collection items area
-        items_area_frame = ttk.Frame(area_frame)
-        items_area_frame.pack(fill=tk.X, pady=2)
-        ttk.Button(items_area_frame, text="Define Collection Items Area", 
-                  command=self.define_collection_items_area).pack(side=tk.LEFT)
-        ttk.Label(items_area_frame, text="Area containing collection materials/items", 
-                 font=("Arial", 8)).pack(side=tk.LEFT, padx=(10, 0))
-        self.items_area_status = ttk.Label(items_area_frame, text="❌ Not defined", foreground="red")
-        self.items_area_status.pack(side=tk.RIGHT)
+        # Buttons Section
+        button_frame = ttk.LabelFrame(main_frame, text="Button Coordinates", padding="5")
+        button_frame.pack(fill=tk.X, pady=(0, 10))
 
-        # Action Button Coordinates Section
-        button_coord_frame = ttk.LabelFrame(main_frame, text="Action Button Coordinates", padding="5")
-        button_coord_frame.pack(fill=tk.X, pady=(0, 10))
+        all_buttons = {**get_collection_buttons(), 
+                      "page_2": "Page 2", "page_3": "Page 3", 
+                      "page_4": "Page 4", "arrow_right": "Arrow Right"}
 
-        # Create coordinate setting for each action button
-        collection_buttons = get_collection_buttons()
-        for button_key, button_name in collection_buttons.items():
-            button_frame = ttk.Frame(button_coord_frame)
-            button_frame.pack(fill=tk.X, pady=2)
+        for button_key, button_name in all_buttons.items():
+            frame = ttk.Frame(button_frame)
+            frame.pack(fill=tk.X, pady=1)
 
-            ttk.Label(button_frame, text=f"{button_name} Button:").pack(side=tk.LEFT)
+            ttk.Label(frame, text=f"{button_name}:").pack(side=tk.LEFT)
             
             coord_var = tk.StringVar(value="Not set")
             self.button_coord_vars[button_key] = coord_var
-            ttk.Label(button_frame, textvariable=coord_var, foreground="blue").pack(side=tk.LEFT, padx=(5, 0))
+            ttk.Label(frame, textvariable=coord_var, foreground="blue", 
+                     font=("Arial", 8)).pack(side=tk.LEFT, padx=(5, 0))
             
-            ttk.Button(button_frame, text=f"Set {button_name}", 
+            ttk.Button(frame, text="Set", 
                       command=lambda k=button_key, n=button_name: self.set_button_coordinate(k, n)).pack(side=tk.RIGHT)
 
-        # Pagination Button Coordinates Section
-        pagination_coord_frame = ttk.LabelFrame(main_frame, text="Pagination Button Coordinates", padding="5")
-        pagination_coord_frame.pack(fill=tk.X, pady=(0, 10))
-
-        # Create coordinate setting for each pagination button
-        pagination_buttons = {
-            "page_2": "Page 2", 
-            "page_3": "Page 3",
-            "page_4": "Page 4",
-            "arrow_right": "Arrow Right"
-        }
+        # Delay Settings
+        delay_frame = ttk.LabelFrame(main_frame, text="Delay Settings", padding="5")
+        delay_frame.pack(fill=tk.X, pady=(0, 10))
         
-        for button_key, button_name in pagination_buttons.items():
-            button_frame = ttk.Frame(pagination_coord_frame)
-            button_frame.pack(fill=tk.X, pady=2)
-
-            ttk.Label(button_frame, text=f"{button_name} Button:").pack(side=tk.LEFT)
-            
-            coord_var = tk.StringVar(value="Not set")
-            self.button_coord_vars[button_key] = coord_var
-            ttk.Label(button_frame, textvariable=coord_var, foreground="blue").pack(side=tk.LEFT, padx=(5, 0))
-            
-            ttk.Button(button_frame, text=f"Set {button_name}", 
-                      command=lambda k=button_key, n=button_name: self.set_pagination_coordinate(k, n)).pack(side=tk.RIGHT)
-
-        # Speed Settings Section
-        speed_frame = ttk.LabelFrame(main_frame, text="Speed Settings", padding="5")
-        speed_frame.pack(fill=tk.X, pady=(0, 10))
+        delay_input_frame = ttk.Frame(delay_frame)
+        delay_input_frame.pack(fill=tk.X, pady=2)
         
-        # Delay multiplier setting
-        delay_frame = ttk.Frame(speed_frame)
-        delay_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(delay_input_frame, text="Delay (milliseconds):").pack(side=tk.LEFT)
         
-        ttk.Label(delay_frame, text="Delay Multiplier:").pack(side=tk.LEFT)
-        
-        self.delay_var = tk.DoubleVar(value=1.0)  # Default 1.0x speed
-        delay_spinbox = ttk.Spinbox(delay_frame, from_=0.0, to=5.0, increment=0.1, 
+        self.delay_var = tk.IntVar(value=1000)  # Default 1000ms (1 second)
+        delay_spinbox = ttk.Spinbox(delay_input_frame, from_=0, to=10000, increment=100, 
                                    textvariable=self.delay_var, width=8,
-                                   command=self.update_delay_multiplier)
+                                   command=self.update_delay)
         delay_spinbox.pack(side=tk.LEFT, padx=(5, 10))
         
-        # Speed presets
-        ttk.Button(delay_frame, text="Ultra Fast (0x)", 
-                  command=lambda: self.set_delay_preset(0.0)).pack(side=tk.LEFT, padx=2)
-        ttk.Button(delay_frame, text="Fast (0.5x)", 
-                  command=lambda: self.set_delay_preset(0.5)).pack(side=tk.LEFT, padx=2)
-        ttk.Button(delay_frame, text="Normal (1x)", 
-                  command=lambda: self.set_delay_preset(1.0)).pack(side=tk.LEFT, padx=2)
-        ttk.Button(delay_frame, text="Safe (2x)", 
-                  command=lambda: self.set_delay_preset(2.0)).pack(side=tk.LEFT, padx=2)
-        
-        # Speed info
-        speed_info = ttk.Label(speed_frame, 
-                              text="0 = Ultra fast (no delays), 1 = Normal speed, 2+ = Slower/safer", 
-                              font=("Arial", 8), foreground="gray")
-        speed_info.pack(pady=(5, 0))
+        # Bind to variable changes to catch manual typing
+        self.delay_var.trace('w', lambda *args: self.update_delay())
 
         # Control buttons
         control_frame = ttk.Frame(main_frame)
-        control_frame.pack(fill=tk.X, pady=(10, 0))
+        control_frame.pack(fill=tk.X, pady=(20, 0))
 
-        self.btn_start = ttk.Button(control_frame, text="Start Collection Automation", 
+        self.btn_start = ttk.Button(control_frame, text="▶ Start Automation", 
                                    command=self.start_automation, style="Accent.TButton")
-        self.btn_start.pack(side=tk.LEFT, padx=(0, 5))
+        self.btn_start.pack(side=tk.LEFT, padx=(0, 10))
 
-        self.btn_stop = ttk.Button(control_frame, text="Stop", command=self.stop_automation)
+        self.btn_stop = ttk.Button(control_frame, text="⏹ Stop", command=self.stop_automation)
         self.btn_stop.pack(side=tk.LEFT)
 
-    def define_collection_tabs_area(self):
-        """Define the area containing all collection tabs"""
+
+
+    def load_saved_settings(self):
+        """Load settings from file and update UI"""
+        # Load delay (convert from old multiplier format if needed)
+        delay_ms = self.settings.get_delay_ms()
+        self.delay_var.set(delay_ms)
+        self.automation.set_delay_ms(delay_ms)
+        
+        # Load and apply areas
+        areas = self.settings.get_all_areas()
+        for area_name, coords in areas.items():
+            if coords:
+                if area_name == "collection_tabs":
+                    self.automation.set_collection_tabs_area(coords)
+                elif area_name == "dungeon_list":
+                    self.automation.set_dungeon_list_area(coords)
+                elif area_name == "collection_items":
+                    self.automation.set_collection_items_area(coords)
+                
+                # Update status
+                if area_name in self.area_status_vars:
+                    self.area_status_vars[area_name].config(text="✓", foreground="green")
+        
+        # Load and apply buttons
+        buttons = self.settings.get_all_buttons()
+        for button_name, coords in buttons.items():
+            if coords:
+                # Set in automation
+                if button_name == "auto_refill":
+                    self.automation.set_auto_refill_button(coords)
+                elif button_name == "register":
+                    self.automation.set_register_button(coords)
+                elif button_name == "yes":
+                    self.automation.set_yes_button(coords)
+                elif button_name == "page_2":
+                    self.automation.set_page_2_button(coords)
+                elif button_name == "page_3":
+                    self.automation.set_page_3_button(coords)
+                elif button_name == "page_4":
+                    self.automation.set_page_4_button(coords)
+                elif button_name == "arrow_right":
+                    self.automation.set_arrow_right_button(coords)
+                
+                # Update UI
+                if button_name in self.button_coord_vars:
+                    self.button_coord_vars[button_name].set(f"({coords[0]}, {coords[1]})")
+        
+        self.update_setup_status()
+
+    def update_setup_status(self):
+        """Update the setup status display"""
+        if self.settings.is_setup_complete():
+            self.setup_status_label.config(text="✓ Ready", foreground="green")
+        else:
+            self.setup_status_label.config(text="⚠ Setup incomplete", foreground="orange")
+
+    def define_area(self, area_name, callback=None):
+        """Define a specific area"""
         def area_callback(area):
             """Callback when area is selected"""
-            self.automation.set_collection_tabs_area(area)
-            self.areas_defined['collection_tabs'] = True
-            self.tabs_area_status.config(text="✅ Defined", foreground="green")
-            self.main_window.update_status(f"Collection tabs area defined: {area}")
+            # Save to settings
+            self.settings.set_area(area_name, area)
+            
+            # Set in automation
+            if area_name == "collection_tabs":
+                self.automation.set_collection_tabs_area(area)
+            elif area_name == "dungeon_list":
+                self.automation.set_dungeon_list_area(area)
+            elif area_name == "collection_items":
+                self.automation.set_collection_items_area(area)
+            
+            # Update UI
+            if area_name in self.area_status_vars:
+                self.area_status_vars[area_name].config(text="✓", foreground="green")
+            
+            self.main_window.update_status(f"✓ {area_name.replace('_', ' ').title()} area saved")
+            
+            if callback:
+                callback()
 
         # Use the shared area selector
         if not hasattr(self.main_window, 'area_selector'):
@@ -178,51 +209,17 @@ class CollectionTab:
 
         self.main_window.area_selector.select_area()
 
-    def define_dungeon_list_area(self):
-        """Define the area containing dungeon/world/special/boss list entries"""
-        def area_callback(area):
-            """Callback when area is selected"""
-            self.automation.set_dungeon_list_area(area)
-            self.areas_defined['dungeon_list'] = True
-            self.dungeon_area_status.config(text="✅ Defined", foreground="green")
-            self.main_window.update_status(f"Dungeon list area defined: {area}")
 
-        # Use the shared area selector
-        if not hasattr(self.main_window, 'area_selector'):
-            from core.area_selector import AreaSelector
-            self.main_window.area_selector = AreaSelector(self.main_window.root, area_callback)
-        else:
-            self.main_window.area_selector.callback = area_callback
 
-        self.main_window.area_selector.select_area()
-
-    def define_collection_items_area(self):
-        """Define the area containing collection materials/items"""
-        def area_callback(area):
-            """Callback when area is selected"""
-            self.automation.set_collection_items_area(area)
-            self.areas_defined['collection_items'] = True
-            self.items_area_status.config(text="✅ Defined", foreground="green")
-            self.main_window.update_status(f"Collection items area defined: {area}")
-
-        # Use the shared area selector
-        if not hasattr(self.main_window, 'area_selector'):
-            from core.area_selector import AreaSelector
-            self.main_window.area_selector = AreaSelector(self.main_window.root, area_callback)
-        else:
-            self.main_window.area_selector.callback = area_callback
-
-        self.main_window.area_selector.select_area()
-
-    def set_button_coordinate(self, button_key, button_name):
+    def set_button_coordinate(self, button_key, button_name, callback=None):
         """Set coordinates for an action button"""
         # Connect to game if needed
         if not self.main_window.game_connector.is_connected():
             if not self.main_window.game_connector.connect_to_game():
-                self.main_window.update_status("❌ Could not connect to the game window. Make sure the game is running.")
+                self.main_window.update_status("❌ Game not found - start the game first")
                 return
 
-        self.main_window.update_status(f"🎯 Click on the '{button_name}' button in the game window to set coordinates...")
+        self.main_window.update_status(f"Click on '{button_name}' button...")
 
         # Change cursor to indicate click mode
         self.main_window.root.config(cursor="crosshair")
@@ -238,6 +235,9 @@ class CollectionTab:
                 rel_x, rel_y, success = self.main_window.game_connector.convert_to_window_coords(x, y)
 
                 if success:
+                    # Save to settings
+                    self.settings.set_button(button_key, (rel_x, rel_y))
+                    
                     # Set coordinates in automation based on button type
                     if button_key == "auto_refill":
                         self.automation.set_auto_refill_button((rel_x, rel_y))
@@ -245,47 +245,7 @@ class CollectionTab:
                         self.automation.set_register_button((rel_x, rel_y))
                     elif button_key == "yes":
                         self.automation.set_yes_button((rel_x, rel_y))
-                    
-                    self.button_coord_vars[button_key].set(f"({rel_x}, {rel_y})")
-                    self.main_window.update_status(f"{button_name} button coordinates set at ({rel_x}, {rel_y})")
-                else:
-                    self.main_window.update_status("❌ Failed to convert coordinates")
-
-            except Exception as e:
-                self.main_window.update_status(f"❌ Failed to capture click: {str(e)}")
-            finally:
-                # Reset cursor
-                self.main_window.root.config(cursor="")
-
-        # Start capture in thread
-        threading.Thread(target=capture_click, daemon=True).start()
-
-    def set_pagination_coordinate(self, button_key, button_name):
-        """Set coordinates for a pagination button"""
-        # Connect to game if needed
-        if not self.main_window.game_connector.is_connected():
-            if not self.main_window.game_connector.connect_to_game():
-                self.main_window.update_status("❌ Could not connect to the game window. Make sure the game is running.")
-                return
-
-        self.main_window.update_status(f"🎯 Click on the '{button_name}' button in the game window to set coordinates...")
-
-        # Change cursor to indicate click mode
-        self.main_window.root.config(cursor="crosshair")
-
-        def capture_click():
-            """Capture the mouse click coordinates"""
-            try:
-                # Wait for mouse click
-                mouse.wait(button='left')
-                x, y = mouse.get_position()
-
-                # Convert to window-relative coordinates
-                rel_x, rel_y, success = self.main_window.game_connector.convert_to_window_coords(x, y)
-
-                if success:
-                    # Set coordinates in automation based on button type
-                    if button_key == "page_2":
+                    elif button_key == "page_2":
                         self.automation.set_page_2_button((rel_x, rel_y))
                     elif button_key == "page_3":
                         self.automation.set_page_3_button((rel_x, rel_y))
@@ -294,8 +254,16 @@ class CollectionTab:
                     elif button_key == "arrow_right":
                         self.automation.set_arrow_right_button((rel_x, rel_y))
                     
-                    self.button_coord_vars[button_key].set(f"({rel_x}, {rel_y})")
-                    self.main_window.update_status(f"{button_name} button coordinates set at ({rel_x}, {rel_y})")
+                    # Update UI
+                    if button_key in self.button_coord_vars:
+                        self.button_coord_vars[button_key].set(f"({rel_x}, {rel_y})")
+                    
+                    self.main_window.update_status(f"✓ {button_name} button saved")
+                    self.update_setup_status()
+                    
+                    # Call callback if provided
+                    if callback:
+                        callback()
                 else:
                     self.main_window.update_status("❌ Failed to convert coordinates")
 
@@ -308,25 +276,21 @@ class CollectionTab:
         # Start capture in thread
         threading.Thread(target=capture_click, daemon=True).start()
 
-    def update_delay_multiplier(self):
-        """Update the delay multiplier in automation"""
-        multiplier = self.delay_var.get()
-        self.automation.set_delay_multiplier(multiplier)
-        self.main_window.update_status(f"Delay multiplier set to {multiplier}x")
-
-    def set_delay_preset(self, multiplier):
-        """Set delay multiplier to a preset value"""
-        self.delay_var.set(multiplier)
-        self.automation.set_delay_multiplier(multiplier)
-        speed_names = {0.0: "Ultra Fast", 0.5: "Fast", 1.0: "Normal", 2.0: "Safe"}
-        speed_name = speed_names.get(multiplier, f"{multiplier}x")
-        self.main_window.update_status(f"Speed set to {speed_name} ({multiplier}x)")
+    def update_delay(self):
+        """Update the delay in automation"""
+        try:
+            delay_ms = self.delay_var.get()
+            self.automation.set_delay_ms(delay_ms)
+            self.settings.set_delay_ms(delay_ms)
+            self.main_window.update_status(f"Delay: {delay_ms}ms")
+        except Exception as e:
+            pass
 
     def start_automation(self):
         """Start the collection automation"""
         # Check if automation is already running
         if self.main_window.is_automation_running():
-            self.main_window.update_status("⚠️ Collection automation is already running!")
+            self.main_window.update_status("⚠ Automation already running!")
             return
 
         # Start automation
