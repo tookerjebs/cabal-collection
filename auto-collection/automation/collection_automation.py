@@ -193,8 +193,8 @@ class CollectionAutomation:
         """Set the arrow right button coordinates"""
         self.arrow_right_coords = coords
 
-    def click_action_button(self, button_type, double_click=False):
-        """Click one of the action buttons (auto_refill, register, yes) with optional double-click"""
+    def click_action_button(self, button_type):
+        """Click one of the action buttons (auto_refill, register, yes)"""
         coords = None
         if button_type == "auto_refill":
             coords = self.auto_refill_coords
@@ -204,11 +204,20 @@ class CollectionAutomation:
             coords = self.yes_coords
         
         if coords and self.game_connector.is_connected():
+            # For auto_refill button, move mouse to coordinates first
+            if button_type == "auto_refill":
+                try:
+                    # Convert game window coordinates to screen coordinates
+                    window_rect = self.game_connector.get_window_rect()
+                    if window_rect:
+                        screen_x = window_rect.left + coords[0]
+                        screen_y = window_rect.top + coords[1]
+                        mouse.move(coords=(screen_x, screen_y))
+                        self.delay(100)  # Small delay after mouse movement
+                except Exception as e:
+                    pass  # Continue with click even if mouse move fails
+            
             self.game_connector.click_at_position(coords)
-            if double_click:
-                if self.delay_ms > 0:
-                    self.delay()  # Delay between double clicks only if delay is set
-                self.game_connector.click_at_position(coords)
             self.delay()  # Base delay
             return True
         return False
@@ -478,7 +487,7 @@ class CollectionAutomation:
         auto_refill_success = False
         max_attempts = 1 if self.delay_ms == 0 else 3  # Fewer retries when delay is 0
         for attempt in range(max_attempts):
-            if self.click_action_button("auto_refill", double_click=True):
+            if self.click_action_button("auto_refill"):
                 auto_refill_success = True
                 break
             else:
@@ -491,19 +500,19 @@ class CollectionAutomation:
         register_success = False
         max_register_attempts = 1 if self.delay_ms == 0 else 2  # Fewer retries when delay is 0
         for attempt in range(max_register_attempts):
-            if self.click_action_button("register", double_click=True):
+            if self.click_action_button("register"):
                 register_success = True
                 break
             else:
                 # If register fails, try Auto Refill again
-                self.click_action_button("auto_refill", double_click=True)
+                self.click_action_button("auto_refill")
                 self.delay()
         
         if not register_success:
             return False
         
         # Click Yes button
-        if self.click_action_button("yes", double_click=True):
+        if self.click_action_button("yes"):
             return True
         else:
             return False
