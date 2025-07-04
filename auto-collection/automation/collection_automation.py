@@ -6,8 +6,9 @@ import os
 import sys
 import cv2
 import numpy as np
-
-from pywinauto import mouse
+import win32api
+import win32con
+import win32gui
 
 class CollectionAutomation:
     def __init__(self, game_connector, status_callback=None):
@@ -117,22 +118,14 @@ class CollectionAutomation:
                 center_y = top + pt[1] + template_height // 2
                 red_dot_positions.append((center_x, center_y))
             
-            # Remove duplicate detections (if multiple detections are very close)
+            # Remove duplicate detections
             if not red_dot_positions:
                 return []
             
-            # Simple duplicate removal - just return first few unique positions
-            filtered_positions = [red_dot_positions[0]]  # Always include first
-            min_distance_sq = 100  # 10^2 for faster comparison (avoid sqrt)
-            
+            filtered_positions = [red_dot_positions[0]]
             for pos in red_dot_positions[1:]:
-                is_duplicate = False
-                for existing_pos in filtered_positions:
-                    distance_sq = (pos[0] - existing_pos[0])**2 + (pos[1] - existing_pos[1])**2
-                    if distance_sq < min_distance_sq:
-                        is_duplicate = True
-                        break
-                if not is_duplicate:
+                if all((pos[0] - existing[0])**2 + (pos[1] - existing[1])**2 >= 100 
+                       for existing in filtered_positions):
                     filtered_positions.append(pos)
             
             return filtered_positions
@@ -140,145 +133,90 @@ class CollectionAutomation:
         except Exception as e:
             return []
 
-    def click_at_screen_position(self, x, y, move_mouse_first=False):
+    def click_at_screen_position(self, x, y):
         """Click at absolute screen coordinates"""
         try:
-            # Convert screen coordinates to game window relative coordinates
+            win32api.SetCursorPos((int(x), int(y)))
+            self.delay()
+            
             rel_x, rel_y, success = self.game_connector.convert_to_window_coords(x, y)
             if success:
-                if move_mouse_first:
-                    # Move mouse to position first (for more reliable clicking)
-                    try:
-                        # Convert game window coordinates to screen coordinates
-                        window_rect = self.game_connector.get_window_rect()
-                        if window_rect:
-                            screen_x = window_rect.left + rel_x
-                            screen_y = window_rect.top + rel_y
-                            import mouse
-                            mouse.move(coords=(screen_x, screen_y))
-                            self.delay(100)  # Small delay after mouse movement
-                    except Exception as e:
-                        pass  # Continue with click even if mouse move fails
-                
                 self.game_connector.click_at_position((rel_x, rel_y))
                 return True
-            else:
-                return False
+            return False
         except Exception as e:
             return False
-            
-    def click_tab(self, x, y):
-        """Special method for clicking tabs - always moves mouse first for reliability"""
-        return self.click_at_screen_position(x, y, move_mouse_first=True)
 
     def set_collection_tabs_area(self, area):
-        """Set the area containing all collection tabs"""
         self.collection_tabs_area = area
 
     def set_dungeon_list_area(self, area):
-        """Set the area containing the dungeon/world/special/boss list entries"""
         self.dungeon_list_area = area
 
     def set_collection_items_area(self, area):
-        """Set the area containing the collection items/materials panel"""
         self.collection_items_area = area
 
     def set_auto_refill_button(self, coords):
-        """Set the auto refill button coordinates"""
         self.auto_refill_coords = coords
 
     def set_register_button(self, coords):
-        """Set the register button coordinates"""
         self.register_coords = coords
 
     def set_yes_button(self, coords):
-        """Set the yes button coordinates"""
         self.yes_coords = coords
 
     def set_page_2_button(self, coords):
-        """Set the page 2 button coordinates"""
         self.page_2_coords = coords
 
     def set_page_3_button(self, coords):
-        """Set the page 3 button coordinates"""
         self.page_3_coords = coords
 
     def set_page_4_button(self, coords):
-        """Set the page 4 button coordinates"""
         self.page_4_coords = coords
 
     def set_arrow_right_button(self, coords):
-        """Set the arrow right button coordinates"""
         self.arrow_right_coords = coords
 
-    def click_action_button(self, button_type):
-        """Click one of the action buttons (auto_refill, register, yes)"""
-        coords = None
-        if button_type == "auto_refill":
-            coords = self.auto_refill_coords
-        elif button_type == "register":
-            coords = self.register_coords
-        elif button_type == "yes":
-            coords = self.yes_coords
+    def get_button_screen_coords(self, button_type):
+        """Get screen coordinates for any button"""
+        coords_map = {
+            "auto_refill": self.auto_refill_coords,
+            "register": self.register_coords,
+            "yes": self.yes_coords,
+            "page_2": self.page_2_coords,
+            "page_3": self.page_3_coords,
+            "page_4": self.page_4_coords,
+            "arrow_right": self.arrow_right_coords
+        }
         
+        coords = coords_map.get(button_type)
         if coords and self.game_connector.is_connected():
-            # For auto_refill button, move mouse to coordinates first
-            if button_type == "auto_refill":
-                try:
-                    # Convert game window coordinates to screen coordinates
-                    window_rect = self.game_connector.get_window_rect()
-                    if window_rect:
-                        screen_x = window_rect.left + coords[0]
-                        screen_y = window_rect.top + coords[1]
-                        mouse.move(coords=(screen_x, screen_y))
-                        self.delay(100)  # Small delay after mouse movement
-                except Exception as e:
-                    pass  # Continue with click even if mouse move fails
-            
-            self.game_connector.click_at_position(coords)
-            self.delay()  # Base delay
-            return True
-        return False
-
-    def click_pagination_button(self, button_type):
-        """Click one of the pagination buttons (page_2, page_3, page_4, arrow_right)"""
-        coords = None
-        if button_type == "page_2":
-            coords = self.page_2_coords
-        elif button_type == "page_3":
-            coords = self.page_3_coords
-        elif button_type == "page_4":
-            coords = self.page_4_coords
-        elif button_type == "arrow_right":
-            coords = self.arrow_right_coords
-        
-        if coords and self.game_connector.is_connected():
-            self.game_connector.click_at_position(coords)
-            self.delay()  # Page loading delay
-            return True
-        return False
+            window_rect = self.game_connector.get_window_rect()
+            if window_rect:
+                return (window_rect.left + coords[0], window_rect.top + coords[1])
+        return None
 
     def scroll_in_item_area(self, direction="down", scroll_amount=5):
-        """Scroll in the item area using mouse wheel - more powerful scrolling"""
+        """Scroll in the item area using mouse wheel"""
         if not self.collection_items_area or not self.game_connector.is_connected():
             return False
             
         try:
-            # Calculate center of the item area for scrolling
             area_left, area_top, area_width, area_height = self.collection_items_area
             center_x = area_left + area_width // 2
             center_y = area_top + area_height // 2
             
-            # Convert to screen coordinates
             window_rect = self.game_connector.get_window_rect()
             if window_rect:
                 screen_x = window_rect.left + center_x
                 screen_y = window_rect.top + center_y
                 
-                # Perform more powerful mouse scroll
+                win32api.SetCursorPos((int(screen_x), int(screen_y)))
+                self.delay()
+                
                 wheel_dist = -scroll_amount if direction == "down" else scroll_amount
-                mouse.scroll(coords=(screen_x, screen_y), wheel_dist=wheel_dist)
-                self.delay()  # Wait for scroll to complete
+                win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL, int(screen_x), int(screen_y), wheel_dist * 120, 0)
+                self.delay()
                 return True
                 
         except Exception as e:
@@ -326,24 +264,12 @@ class CollectionAutomation:
         return True
 
     def _automation_loop(self):
-        """Main automation loop - systematic workflow"""
+        """Main automation loop"""
         try:
             self.update_status("Automation started")
             
-            # Validate areas are configured
-            if not self.collection_tabs_area:
-                self.update_status("❌ Collection tabs area not configured!")
-                return
-            if not self.dungeon_list_area:
-                self.update_status("❌ Dungeon list area not configured!")
-                return
-            if not self.collection_items_area:
-                self.update_status("❌ Collection items area not configured!")
-                return
-            
             while self.running:
-                # Step 1: Check for red dots in collection tabs area
-                if self.delay_ms > 0:  # Only show status updates if delay is set
+                if self.delay_ms > 0:
                     self.update_status("🔍 Scanning collection tabs for red dots...")
                 tab_red_dots = self.find_red_dots_in_area(self.collection_tabs_area)
                 
@@ -351,17 +277,11 @@ class CollectionAutomation:
                     self.update_status("✓ All collections complete!")
                     break
                 
-                # Process the first red dot found (most efficient)
                 tab_dot_pos = tab_red_dots[0]
+                self.click_at_screen_position(tab_dot_pos[0], tab_dot_pos[1])
+                self.delay()
                 
-                # Use special tab clicking method that moves mouse first for reliability
-                self.click_tab(tab_dot_pos[0], tab_dot_pos[1])
-                self.delay()  # Wait for tab to load
-                
-                # Step 2: Process dungeon list in this tab, passing the original tab position
                 self.process_dungeon_list(tab_dot_pos)
-                
-                # Small delay before checking tabs again
                 self.delay()
                 
         except Exception as e:
@@ -371,30 +291,26 @@ class CollectionAutomation:
             self.update_status("Automation stopped")
 
     def process_dungeon_list(self, original_tab_position):
-        """Process all dungeons/entries with red dots in the current tab - simplified logic"""
+        """Process all dungeons/entries with red dots in the current tab"""
         current_page = 1
-        page_group = 0
         
-        # Keep processing while the specific tab still has a red dot (indicating more work)
         while self.running and self.tab_still_has_red_dot(original_tab_position):
-            # Process dungeons on current page
             found_dungeons = self.process_dungeons_on_current_page()
             
             if found_dungeons:
-                # Found and processed dungeons, start over from page 1 (no need to click, it's default)
                 current_page = 1
-                page_group = 0
             else:
-                # No dungeons on this page, try next page
                 current_page += 1
                 
                 if current_page <= 4:
-                    # Move to next page in current group
-                    self.click_pagination_button(f"page_{current_page}")
+                    coords = self.get_button_screen_coords(f"page_{current_page}")
+                    if coords:
+                        self.click_at_screen_position(coords[0], coords[1])
+                        self.delay()
                 else:
-                    # Move to next page group
-                    if self.click_pagination_button("arrow_right"):
-                        page_group += 1
+                    coords = self.get_button_screen_coords("arrow_right")
+                    if coords and self.click_at_screen_position(coords[0], coords[1]):
+                        self.delay()
                         current_page = 1
                     else:
                         break
@@ -403,24 +319,17 @@ class CollectionAutomation:
         """Process all dungeons with red dots on the current page"""
         items_processed = False
         
-        # Keep processing until no more red dots are found on this page
         while self.running:
             dungeon_red_dots = self.find_red_dots_in_area(self.dungeon_list_area)
-            
             if not dungeon_red_dots:
                 break
             
-            # Process the first red dot found (most efficient approach)
             dungeon_dot_pos = dungeon_red_dots[0]
-            
             self.click_at_screen_position(dungeon_dot_pos[0], dungeon_dot_pos[1])
-            self.delay()  # Wait for items to load
+            self.delay()
             
-            # Process collection items for this dungeon
             if self.process_collection_items():
                 items_processed = True
-            
-            # Small delay before checking the page again
             self.delay()
                 
         return items_processed
@@ -440,116 +349,68 @@ class CollectionAutomation:
         return False
 
     def process_collection_items(self):
-        """Process all collection items with red dots - optimized for speed and coverage"""
+        """Process all collection items with red dots"""
         items_processed = False
         
-        # First, scroll to top to ensure we start from the beginning
-        self.scroll_in_item_area(direction="up", scroll_amount=20)  # Strong scroll to top
-        self.delay()  # Wait for scroll
+        self.scroll_in_item_area(direction="up", scroll_amount=20)
+        self.delay()
         
-        # Use a more efficient approach: fewer, larger scrolls
-        scroll_positions = 3 if self.delay_ms == 0 else 4  # Fewer positions when delay is 0
-        
-        for position in range(scroll_positions):
+        for position in range(4):
             if not self.running:
                 break
             
-            # Process all items at current scroll position
-            current_position_had_items = self.process_all_items_at_current_position()
-            if current_position_had_items:
+            if self.process_all_items_at_current_position():
                 items_processed = True
             
-            # Scroll down for next position (except on last position)
-            if position < scroll_positions - 1:
-                self.scroll_in_item_area(direction="down", scroll_amount=8)  # Larger scroll steps
-                self.delay()  # Wait for scroll to settle
+            if position < 3:
+                self.scroll_in_item_area(direction="down", scroll_amount=8)
+                self.delay()
                 
         return items_processed
 
     def process_all_items_at_current_position(self):
-        """Process items with red dots at the current scroll position - optimized for speed"""
+        """Process items with red dots at the current scroll position"""
         items_processed = False
-        max_iterations = 5 if self.delay_ms == 0 else 10  # Fewer iterations when delay is 0
-        iteration = 0
         
-        # Keep processing until no more red dots are found at this position
-        while self.running and iteration < max_iterations:
-            iteration += 1
-            
-            # Re-scan for red dots each time to avoid clicking on items that no longer have red dots
+        while self.running:
             item_red_dots = self.find_red_dots_in_area(self.collection_items_area)
-            
             if not item_red_dots:
-                break  # No more red dots at this position
+                break
             
-            # Process only the first red dot found (most reliable approach)
             item_dot_pos = item_red_dots[0]
-            
             self.click_at_screen_position(item_dot_pos[0], item_dot_pos[1])
-            self.delay()  # Item selection delay
+            self.delay()
             
-            # Execute the button sequence with retry logic
-            if self.execute_button_sequence_with_item_retry(item_dot_pos):
+            if self.execute_button_sequence():
                 items_processed = True
-            
-            # Minimal delay before re-scanning for more items
-            self.delay()  # Delay for efficiency
+            self.delay()
                 
         return items_processed
 
     def execute_button_sequence(self):
-        """Execute the button sequence: Auto Refill -> Register -> Yes with retry logic for problematic items"""
+        """Execute the button sequence: Auto Refill -> Register -> Yes"""
         if not self.running:
             return False
         
-        # Try Auto Refill with retry logic for stubborn items
-        auto_refill_success = False
-        max_attempts = 1 if self.delay_ms == 0 else 3  # Fewer retries when delay is 0
-        for attempt in range(max_attempts):
-            if self.click_action_button("auto_refill"):
-                auto_refill_success = True
-                break
-            else:
-                self.delay()
-        
-        if not auto_refill_success:
+        # Auto Refill
+        coords = self.get_button_screen_coords("auto_refill")
+        if not coords or not self.click_at_screen_position(coords[0], coords[1]):
             return False
+        self.delay()
         
-        # Try Register button - this is where we'll detect the "no item to register" issue
-        register_success = False
-        max_register_attempts = 1 if self.delay_ms == 0 else 2  # Fewer retries when delay is 0
-        for attempt in range(max_register_attempts):
-            if self.click_action_button("register"):
-                register_success = True
-                break
-            else:
-                # If register fails, try Auto Refill again
-                self.click_action_button("auto_refill")
-                self.delay()
-        
-        if not register_success:
+        # Register
+        coords = self.get_button_screen_coords("register")
+        if not coords or not self.click_at_screen_position(coords[0], coords[1]):
             return False
+        self.delay()
         
-        # Click Yes button
-        if self.click_action_button("yes"):
-            return True
-        else:
+        # Yes
+        coords = self.get_button_screen_coords("yes")
+        if not coords or not self.click_at_screen_position(coords[0], coords[1]):
             return False
-
-    def execute_button_sequence_with_item_retry(self, item_position):
-        """Execute button sequence with ability to re-click the item if Auto Refill fails"""
-        # First attempt with normal sequence
-        if self.execute_button_sequence():
-            return True
+        self.delay()
         
-        # Re-click the item (maybe it wasn't properly selected)
-        self.click_at_screen_position(item_position[0], item_position[1])
-        self.delay()  # Wait for item selection
-        
-        # Try the sequence again
-        if self.execute_button_sequence():
-            return True
-        return False
+        return True
 
     def stop(self):
         """Stop the automation"""

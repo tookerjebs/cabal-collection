@@ -51,6 +51,6 @@
   },
   "speed": {
     "delay_multiplier": 0.5,
-    "delay_ms": 35
+    "delay_ms": 25
   }
 }
