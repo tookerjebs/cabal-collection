@@ -140,18 +140,36 @@ class CollectionAutomation:
         except Exception as e:
             return []
 
-    def click_at_screen_position(self, x, y):
+    def click_at_screen_position(self, x, y, move_mouse_first=False):
         """Click at absolute screen coordinates"""
         try:
             # Convert screen coordinates to game window relative coordinates
             rel_x, rel_y, success = self.game_connector.convert_to_window_coords(x, y)
             if success:
+                if move_mouse_first:
+                    # Move mouse to position first (for more reliable clicking)
+                    try:
+                        # Convert game window coordinates to screen coordinates
+                        window_rect = self.game_connector.get_window_rect()
+                        if window_rect:
+                            screen_x = window_rect.left + rel_x
+                            screen_y = window_rect.top + rel_y
+                            import mouse
+                            mouse.move(coords=(screen_x, screen_y))
+                            self.delay(100)  # Small delay after mouse movement
+                    except Exception as e:
+                        pass  # Continue with click even if mouse move fails
+                
                 self.game_connector.click_at_position((rel_x, rel_y))
                 return True
             else:
                 return False
         except Exception as e:
             return False
+            
+    def click_tab(self, x, y):
+        """Special method for clicking tabs - always moves mouse first for reliability"""
+        return self.click_at_screen_position(x, y, move_mouse_first=True)
 
     def set_collection_tabs_area(self, area):
         """Set the area containing all collection tabs"""
@@ -336,7 +354,8 @@ class CollectionAutomation:
                 # Process the first red dot found (most efficient)
                 tab_dot_pos = tab_red_dots[0]
                 
-                self.click_at_screen_position(tab_dot_pos[0], tab_dot_pos[1])
+                # Use special tab clicking method that moves mouse first for reliability
+                self.click_tab(tab_dot_pos[0], tab_dot_pos[1])
                 self.delay()  # Wait for tab to load
                 
                 # Step 2: Process dungeon list in this tab, passing the original tab position

@@ -53,24 +53,13 @@ class GameConnector:
             self.update_status(f"Could not connect to the game. Make sure it's running. Error: {str(e)}")
             return False
 
-    def click_at_position(self, coords, adjust_for_client_area=True, use_fast_click=True):
-        """Click at the specified coordinates in the game window"""
+    def click_at_position(self, coords, adjust_for_client_area=True):
+        """Click at the specified coordinates in the game window using Windows API only"""
         if not self.game_window:
             return False
         try:
-            if use_fast_click:
-                return self.fast_click_at_position(coords, adjust_for_client_area)
-            else:
-                # Fallback to pywinauto method
-                if adjust_for_client_area:
-                    offset = self.get_window_client_offset()
-                    if offset:
-                        adjusted_coords = (coords[0] - offset[0], coords[1] - offset[1])
-                        self.game_window.click(coords=adjusted_coords)
-                        return True
-
-                self.game_window.click(coords=coords)
-                return True
+            # Exclusively use Windows API for clicking - no fallbacks to other methods
+            return self.fast_click_at_position(coords, adjust_for_client_area)
         except Exception as e:
             self.update_status(f"Click failed: {str(e)}")
             return False
@@ -95,6 +84,20 @@ class GameConnector:
             
             # Create the lParam for the click coordinates
             lParam = win32api.MAKELONG(click_x, click_y)
+            
+            # Ensure the window is in foreground for more reliable clicking
+            # This is optional but can help in some cases
+            try:
+                if not win32gui.IsWindow(hwnd):
+                    return False
+                
+                # Only try to set foreground if it's not already
+                foreground_hwnd = win32gui.GetForegroundWindow()
+                if foreground_hwnd != hwnd:
+                    # Don't force it - just a gentle attempt that won't block if it fails
+                    win32gui.SetForegroundWindow(hwnd)
+            except Exception:
+                pass  # Continue even if setting foreground fails
             
             # Send mouse down and up messages directly - much faster than pywinauto
             win32gui.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, lParam)
