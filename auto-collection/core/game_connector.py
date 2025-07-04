@@ -85,19 +85,9 @@ class GameConnector:
             # Create the lParam for the click coordinates
             lParam = win32api.MAKELONG(click_x, click_y)
             
-            # Ensure the window is in foreground for more reliable clicking
-            # This is optional but can help in some cases
-            try:
-                if not win32gui.IsWindow(hwnd):
-                    return False
-                
-                # Only try to set foreground if it's not already
-                foreground_hwnd = win32gui.GetForegroundWindow()
-                if foreground_hwnd != hwnd:
-                    # Don't force it - just a gentle attempt that won't block if it fails
-                    win32gui.SetForegroundWindow(hwnd)
-            except Exception:
-                pass  # Continue even if setting foreground fails
+            # Check if window is valid (removed foreground window check for speed)
+            if not win32gui.IsWindow(hwnd):
+                return False
             
             # Send mouse down and up messages directly - much faster than pywinauto
             win32gui.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, lParam)

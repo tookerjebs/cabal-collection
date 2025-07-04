@@ -82,8 +82,14 @@ class CollectionAutomation:
             self.red_dot_template_path = None
             self.red_dot_template = None
 
-    def find_red_dots_in_area(self, area, confidence=0.9):
-        """Find all red dots in the specified area using OpenCV template matching"""
+    def find_red_dots_in_area(self, area, confidence=0.9, first_only=False):
+        """Find red dots in the specified area using OpenCV template matching
+        
+        Args:
+            area: Tuple of (left, top, width, height)
+            confidence: Matching confidence threshold (0.0-1.0)
+            first_only: If True, only return the first match (faster)
+        """
         if not self.red_dot_template_path or self.red_dot_template is None:
             return []
         
@@ -105,7 +111,17 @@ class CollectionAutomation:
             # Perform template matching
             result = cv2.matchTemplate(screenshot_cv, template, cv2.TM_CCOEFF_NORMED)
             
-            # Find all matches above the confidence threshold
+            # If we only need the first match, find the single best match point (much faster)
+            if first_only:
+                min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+                if max_val >= confidence:
+                    template_height, template_width = template.shape[:2]
+                    center_x = left + max_loc[0] + template_width // 2
+                    center_y = top + max_loc[1] + template_height // 2
+                    return [(center_x, center_y)]
+                return []
+            
+            # Otherwise, find all matches above the confidence threshold
             locations = np.where(result >= confidence)
             
             # Convert matches to center coordinates (absolute screen coordinates)
@@ -137,7 +153,7 @@ class CollectionAutomation:
         """Click at absolute screen coordinates"""
         try:
             win32api.SetCursorPos((int(x), int(y)))
-            self.delay()
+            # Removed delay here - not needed before coordinate conversion
             
             rel_x, rel_y, success = self.game_connector.convert_to_window_coords(x, y)
             if success:
@@ -320,7 +336,8 @@ class CollectionAutomation:
         items_processed = False
         
         while self.running:
-            dungeon_red_dots = self.find_red_dots_in_area(self.dungeon_list_area)
+            # Use the optimized version that only finds the first red dot (much faster)
+            dungeon_red_dots = self.find_red_dots_in_area(self.dungeon_list_area, first_only=True)
             if not dungeon_red_dots:
                 break
             
