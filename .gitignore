@@ -29,7 +29,8 @@ MANIFEST
 
 # PyInstaller
 *.manifest
-*.spec
+# Keep main.spec for building but ignore generated spec files
+# *.spec
 
 # Installer logs
 pip-log.txt
@@ -162,3 +163,14 @@ Tesseract/
 *.swp
 *.swo
 *~
+
+# Project-specific
+settings.json
+dist/
+build/
+venv/
+
+# Application-specific - ignore built executables
+*.exe
+# Keep the template image in data directory but ignore root copy
+/red-dot.png
